@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Recommended Savings Plan{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h2 class="text-center mb-4">Recommended Savings Plan</h2>
+                    {% if recommended_amount %}
+                        <div class="alert alert-success text-center" role="alert">
+                            Based on your spending patterns, we recommend saving: <strong>${{ recommended_amount }}</strong>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning text-center" role="alert">
+                            Not enough data to make a recommendation.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

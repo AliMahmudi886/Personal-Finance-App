@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h2 class="text-center">Your Goals</h2>
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Goal</th>
+            <th>Target Amount</th>
+            <th>Current Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for goal in goals %}
+        <tr>
+            <td>{{ goal[2] }}</td>
+            <td>{{ goal[3] }}</td>
+            <td>{{ goal[4] }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+            </div>
+</div>
+{% endblock %}

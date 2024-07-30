@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Expense Clusters{% endblock %}
+
+{% block content %}
+<style>
+    body {
+        font-family: 'Roboto', sans-serif;
+        background: url('{{ url_for('static', filename='icons/background2.jpg') }}') no-repeat center center;
+        background-size: cover;
+        color: white;
+        padding: 2rem .5rem;
+    }
+
+    h1, h2 {
+        font-weight: bold;
+        color: #333;
+    }
+
+    .form-container {
+        margin-bottom: 2rem;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+
+    .form-container select,
+    .form-container input,
+    .form-container button {
+        margin: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+    }
+
+    .cluster-container {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .expense-item {
+        list-style: none;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #ccc;
+    }
+
+    .expense-item:last-child {
+        border-bottom: none;
+    }
+</style>
+
+<div class="container">
+    <h1>Expense Clusters</h1>
+    <div class="form-container">
+        <form method="get" action="{{ url_for('expense_clusters') }}">
+            <label for="method">Clustering Method:</label>
+            <select name="method" id="method">
+                <option value="kmeans" {% if method == 'kmeans' %}selected{% endif %}>K-Means</option>
+                <option value="hierarchical" {% if method == 'hierarchical' %}selected{% endif %}>Hierarchical</option>
+                <option value="dbscan" {% if method == 'dbscan' %}selected{% endif %}>DBSCAN</option>
+            </select>
+            <label for="n_clusters">Number of Clusters:</label>
+            <input type="number" name="n_clusters" id="n_clusters" value="{{ n_clusters }}" min="1">
+            <button type="submit">Apply</button>
+        </form>
+    </div>
+    <div>
+        {% for cluster, expenses in clusters.items() %}
+            <div class="cluster-container">
+                <h2>Cluster {{ cluster }}</h2>
+                <ul>
+                    {% for expense in expenses %}
+                        <li class="expense-item">{{ expense.date }}: ${{ expense.amount }} - {{ expense.category }} - {{ expense.description }} - Sentiment: {{ expense.sentiment }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

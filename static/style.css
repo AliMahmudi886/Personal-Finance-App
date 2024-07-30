@@ -1,0 +1,32 @@
+body {
+    padding-top: 56px;
+}
+
+.navbar {
+    margin-bottom: 20px;
+}
+
+.jumbotron {
+    background-color: #f8f9fa;
+    padding: 2rem 1rem;
+}
+
+h2 {
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.btn-block {
+    margin-top: 10px;
+}
+
+.table {
+    margin-top: 20px;
+}
+
+.alert-container {
+    margin-top: 20px;
+}

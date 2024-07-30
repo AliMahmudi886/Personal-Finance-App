@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Anomalies in Expenses{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center">Anomalies in Your Expenses</h2>
+    {% if anomalies.empty %}
+        <div class="alert alert-info text-center" role="alert">
+            No anomalies detected.
+        </div>
+    {% else %}
+        <table class="table table-bordered table-striped mt-4">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Date</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for index, row in anomalies.iterrows() %}
+                <tr>
+                    <td>{{ row.name.strftime('%Y-%m-%d') }}</td>
+                    <td>${{ row['amount'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>
+{% endblock %}

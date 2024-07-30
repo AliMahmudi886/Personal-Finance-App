@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Add Goal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <h2 class="text-center">Add Goal</h2>
+        <form method="POST" action="{{ url_for('add_goal') }}">
+            <div class="form-group">
+                <label for="goal">Goal</label>
+                <input type="text" class="form-control" name="goal" id="goal" required>
+            </div>
+            <div class="form-group">
+                <label for="target_amount">Target Amount</label>
+                <input type="number" step="0.01" class="form-control" name="target_amount" id="target_amount" required>
+            </div>
+            <div class="form-group">
+                <label for="current_amount">Current Amount</label>
+                <input type="number" step="0.01" class="form-control" name="current_amount" id="current_amount" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Add Goal</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

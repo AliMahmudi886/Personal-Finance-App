@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Expense Clusters{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h2 class="text-center">Expense Clusters</h2>
+
+
+{% if clustered_data %}
+ <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Amount</th>
+                <th>Cluster</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in clustered_data %}
+            <tr>
+                <td>{{ row['date'] }}</td>
+                <td>{{ row['amount'] }}</td>
+                <td>{{ row['cluster'] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    </div>
+{% else %}
+<p>No clusters found.</p>
+{% endif %}
+{% endblock %}

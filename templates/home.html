@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<style>
+    body {
+        font-family: 'Roboto', sans-serif;
+        background: url('{{ url_for('static', filename='icons/background2.jpg') }}') no-repeat center center;
+        background-size: cover;
+        color: white;
+        padding: 2rem .5rem;
+    }
+
+    .jumbotron .display-4 {
+        font-weight: bold;
+    }
+
+    .card-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+
+    .card {
+        width: 150px;
+        margin: 15px;
+        padding: 20px;
+        text-align: center;
+        background: white;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .card img {
+        width: 50px;
+        height: 50px;
+        margin-bottom: 10px;
+    }
+
+    .card p {
+        margin: 0;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .card a {
+        text-decoration: none;
+        color: #333;
+    }
+
+    .card a:hover {
+        color: #007bff;
+    }
+</style>
+
+<div class="container">
+    <h1 class="display-4">Welcome to the Personal Finance App</h1>
+    <p class="lead">Manage your finances effortlessly and effectively.</p>
+    <hr class="my-4" style="border-color: white;">
+    <div class="card-container">
+        <div class="card">
+            <a href="{{ url_for('add_expense') }}">
+               <img src="{{ url_for('static', filename='icons/icons8-dollar-banknote-48.png') }}" alt="Add Expense">
+               <p>Add Expense</p>
+            </a>
+        </div>
+        <div class="card">
+            <a href="{{ url_for('view_expenses') }}">
+                <img src="{{ url_for('static', filename='icons/icons8-receipt-64.png') }}" alt="View Expenses">
+                <p>View Expenses</p>
+            </a>
+        </div>
+        <div class="card">
+            <a href="{{ url_for('predict_expenses') }}">
+                <img src="{{ url_for('static', filename='icons/icons8-graph-64.png') }}" alt="Predict Expenses">
+                <p>Predict Expenses</p>
+            </a>
+        </div>
+        <div class="card">
+            <a href="{{ url_for('add_goal') }}">
+                <img src="{{ url_for('static', filename='icons/isometric-target-1.png') }}" alt="Add Goal">
+                <p>Add Goal</p>
+            </a>
+        </div>
+        <div class="card">
+            <a href="{{ url_for('view_goals') }}">
+                <img src="{{ url_for('static', filename='icons/success.png') }}" alt="View Goals">
+                <p>View Goals</p>
+            </a>
+        </div>
+        <div class="card">
+            <a href="{{ url_for('add_income') }}">
+                <img src="{{ url_for('static', filename='icons/hand-with-dollar.png') }}" alt="Add Income">
+                <p>Add Income</p>
+            </a>
+        </div>
+        <div class="card">
+            <a href="{{ url_for('view_income') }}">
+                <img src="{{ url_for('static', filename='icons/growth.png') }}" alt="View Income">
+                <p>View Income</p>
+            </a>
+        </div>
+        <div class="card">
+            <a href="{{ url_for('view_anomalies') }}">
+                <img src="{{ url_for('static', filename='icons/statistics.png') }}" alt="View Anomalies">
+                <p>View Anomalies</p>
+            </a>
+        </div>
+        <div class="card">
+            <a href="{{ url_for('view_expense_clusters') }}">
+                <img src="{{ url_for('static', filename='icons/cluster.png') }}" alt="View Clusters">
+                <p>View Clusters</p>
+            </a>
+        </div>
+        <div class="card">
+            <a href="{{ url_for('recommend_savings') }}">
+                <img src="{{ url_for('static', filename='icons/piggy-bank.png') }}" alt="Recommend Savings">
+                <p>Recommend Savings</p>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

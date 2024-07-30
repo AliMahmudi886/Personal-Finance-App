@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<style>
+    body {
+        background: url('{{ url_for('static', filename='icons/bakgroundlogin1.jpg') }}') no-repeat center center;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        height: 125vh;
+        color: white;
+    }
+    .card {
+        background: rgba(255, 255, 255, 0.9); /* Lighten the card background for better readability */
+        border-radius: 10px;
+    }
+    .card-body {
+        padding: 30px;
+    }
+    .btn-primary {
+        background-color: #1a1a40;
+        border-color: #1a1a40;
+    }
+    .form-label {
+        font-size: 1.2em; /* Increase font size */
+        font-weight: bold; /* Make font bold */
+        color: #1a1a40; /* Change color for better visibility */
+    }
+</style>
+
+<div class="row justify-content-center align-items-center min-vh-100">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h2 class="text-center mb-4" style="color: #1a1a40;">Register</h2>
+                <form method="POST" action="{{ url_for('register') }}">
+                    <div class="form-group">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" name="username" id="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" name="password" id="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Register</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

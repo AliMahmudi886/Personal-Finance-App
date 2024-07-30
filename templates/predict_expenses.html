@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Predict Expenses{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h2 class="text-center mb-4">Expense Prediction</h2>
+                    {% if error %}
+                        <div class="alert alert-warning text-center">{{ error }}</div>
+                    {% else %}
+                        <h5 class="card-title text-center">Next Month's Predicted Expense: ${{ prediction }}</h5>
+                        <canvas id="expenseChart" class="mt-4"></canvas>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    {% if not error %}
+    var ctx = document.getElementById('expenseChart').getContext('2d');
+    var expenseChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ labels | tojson | safe }},
+            datasets: [
+                {
+                    label: 'Actual Expenses',
+                    data: {{ actual_expenses | tojson | safe }},
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: false
+                },
+                {
+                    label: 'Predicted Expenses',
+                    data: {{ predicted_expenses | tojson | safe }},
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                },
+                y: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Amount'
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+</script>
+{% endblock %}

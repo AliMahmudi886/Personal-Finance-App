@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Dashboard</h2>
+<div class="row">
+    <div class="col-md-6">
+        <h3>Income vs Expenses</h3>
+        <canvas id="incomeVsExpensesChart"></canvas>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+var ctx = document.getElementById('incomeVsExpensesChart').getContext('2d');
+var myChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: ['Income', 'Expenses'],
+        datasets: [{
+            label: 'Amount',
+            data: [{{ total_income }}, {{ total_expenses }}],
+            backgroundColor: ['#36A2EB', '#FF6384']
+        }]
+    }
+});
+</script>
+{% endblock %}
