@@ -1,27 +1,26 @@
 {% extends "base.html" %}
-
+{% from "finance_macros.html" import stored_amount %}
+{% block title %}Savings goals{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <h2 class="text-center">Your Goals</h2>
-<table class="table table-bordered table-striped">
-    <thead>
-        <tr>
-            <th>Goal</th>
-            <th>Target Amount</th>
-            <th>Current Amount</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for goal in goals %}
-        <tr>
-            <td>{{ goal[2] }}</td>
-            <td>{{ goal[3] }}</td>
-            <td>{{ goal[4] }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-            </div>
+<header class="overview-header"><div><h1>Savings goals</h1><p>{{ goals|length }} {{ 'goal' if goals|length == 1 else 'goals' }}</p></div>
+    <a class="ds-button primary" href="{{ url_for('add_goal') }}">Add goal</a></header>
+{% if goals %}
+<div class="goal-grid">
+{% for goal_id, name, target, current, progress in goals %}
+    <article class="surface overview-panel goal-card">
+        <header><h2>{{ name }}</h2>
+            {% if progress == 100 %}<span class="status-label">Complete</span>{% endif %}
+        </header>
+        <p class="goal-total">{{ stored_amount(current) }} <span>of {{ stored_amount(target) }}</span></p>
+        {% if progress is not none %}
+        <progress max="100" value="{{ progress }}" aria-label="{{ name }} progress">{{ progress }}%</progress>
+        <p class="muted">{{ progress }}% complete</p>
+        {% else %}
+        <p class="muted">Edit the amounts to calculate progress.</p>
+        {% endif %}
+        <a class="ds-button" href="{{ url_for('add_goal', goal_id=goal_id) }}" aria-label="Edit {{ name }}">Edit goal</a>
+    </article>
+{% endfor %}
 </div>
+{% else %}<p class="surface overview-panel">Add a goal to start tracking your savings.</p>{% endif %}
 {% endblock %}

@@ -264,6 +264,82 @@ class FinanceTest(unittest.TestCase):
         self.assertEqual(monthly_expenses(user_id)["amount"].tolist(), [1.35])
         self.assertEqual(self.client.get("/expense_clusters").status_code, 200)
 
+    def test_goal_progress_edit_validation_and_ownership(self):
+        self.sign_in(self.client, "goal-owner")
+        other = self.app.test_client()
+        self.sign_in(other, "goal-other")
+        details = {
+            "goal": "Fixture renovation",
+            "target_amount": "100",
+            "current_amount": "29",
+        }
+        self.assertEqual(
+            self.submit(self.client, "/add_goal", details).status_code, 302
+        )
+        self.assertIn(b"29% complete", self.client.get("/view_goals").data)
+        self.assertEqual(
+            self.submit(
+                self.client, "/goals/1/edit", {**details, "target_amount": "0"}
+            ).status_code,
+            400,
+        )
+        self.assertEqual(
+            self.submit(
+                other, "/goals/1/edit", details, form_path="/add_goal"
+            ).status_code,
+            404,
+        )
+        self.assertEqual(
+            self.submit(
+                self.client, "/goals/1/edit", {**details, "current_amount": "105"}
+            ).status_code,
+            302,
+        )
+        page = self.client.get("/view_goals").data
+        self.assertIn(b"100% complete", page)
+        self.assertIn(b"$105.00", page)
+
+    def test_recurring_reminder_edit_is_private_and_does_not_post_expense(self):
+        self.sign_in(self.client, "reminder-owner")
+        other = self.app.test_client()
+        self.sign_in(other, "reminder-other")
+        details = {
+            "category": "Fixture invoice",
+            "amount": "19.50",
+            "frequency": "monthly",
+            "next_due_date": "2026-11-20",
+        }
+        self.assertEqual(
+            self.submit(
+                self.client, "/recurring/add", {**details, "frequency": "invalid"}
+            ).status_code,
+            400,
+        )
+        self.assertEqual(
+            self.submit(self.client, "/recurring/add", details).status_code, 302
+        )
+        self.assertIn(b"Fixture invoice", self.client.get("/recurring").data)
+        self.assertNotIn(b"Fixture invoice", other.get("/recurring").data)
+        self.assertEqual(
+            self.submit(
+                other, "/recurring/1/edit", details, form_path="/recurring/add"
+            ).status_code,
+            404,
+        )
+        self.assertEqual(
+            self.submit(
+                self.client,
+                "/recurring/1/edit",
+                {**details, "next_due_date": "2026-12-20"},
+            ).status_code,
+            302,
+        )
+        self.assertIn(b"2026-12-20", self.client.get("/recurring").data)
+        with closing(sqlite3.connect(self.db_path)) as db:
+            self.assertEqual(
+                db.execute("SELECT COUNT(*) FROM expenses").fetchone()[0], 0
+            )
+
     def test_overview_uses_period_and_account_and_applies_refunds(self):
         from models import create_expense, create_income, get_user_by_username
 

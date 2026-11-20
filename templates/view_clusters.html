@@ -1,35 +1,17 @@
 {% extends "base.html" %}
-
-{% block title %}Expense Clusters{% endblock %}
-
+{% from "finance_macros.html" import stored_amount %}
+{% block title %}Expense clusters{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <h2 class="text-center">Expense Clusters</h2>
-
-
-{% if clustered_data %}
- <table class="table table-bordered table-striped">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Amount</th>
-                <th>Cluster</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in clustered_data %}
-            <tr>
-                <td>{{ row['date'] }}</td>
-                <td>{{ row['amount'] }}</td>
-                <td>{{ row['cluster'] }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<header class="overview-header"><div><h1>Expense clusters</h1><p>Explore groups of expenses with similar amounts and descriptions.</p></div>
+    <a class="ds-button" href="{{ url_for('expense_clusters') }}">Choose clustering method</a></header>
+<section class="surface overview-panel">
+    {% if clustered_data %}
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Clustered expenses">
+        <table class="ledger-table">
+            <thead><tr><th scope="col">Date</th><th scope="col">Description</th><th scope="col">Cluster</th><th scope="col">Amount</th></tr></thead>
+            <tbody>{% for row in clustered_data %}<tr><td>{{ row.date }}</td><td>{{ row.description }}</td><td>{{ row.cluster }}</td><td>{{ stored_amount(row.amount) }}</td></tr>{% endfor %}</tbody>
+        </table>
     </div>
-    </div>
-{% else %}
-<p>No clusters found.</p>
-{% endif %}
+    {% else %}<p class="muted">Record more expenses with descriptions to see clusters.</p>{% endif %}
+</section>
 {% endblock %}

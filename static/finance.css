@@ -124,3 +124,32 @@ body > .navbar { background: #132f29; }
     font: inherit;
     cursor: pointer;
 }
+
+.account-field select {
+    min-height: 48px;
+    border: 1px solid #8ba49b;
+    border-radius: 8px;
+    padding: .55rem .75rem;
+    color: var(--ink);
+    background: var(--surface);
+}
+.entry-actions { margin-top: .5rem; }
+.entry-actions .ds-button { margin: 0; }
+.goal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); gap: 1rem; }
+.goal-card header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .4rem; }
+.goal-card h2 { overflow-wrap: anywhere; }
+.goal-total { font-size: 1.3rem; font-weight: 720; }
+.goal-total span { color: var(--muted); font-size: .9rem; font-weight: 500; }
+.goal-card progress { width: 100%; height: .8rem; accent-color: var(--accent); }
+.goal-card .ds-button { margin-top: .75rem; }
+.status-label { display: inline-block; background: var(--accent-soft); color: var(--ink); border-radius: 6px; padding: .2rem .45rem; font-size: .8rem; }
+.due-label { display: block; width: fit-content; margin-top: .25rem; background: #f4ead7; }
+.section-note { margin-top: 1rem; }
+@media (prefers-reduced-motion: no-preference) {
+    .ds-button { transition: background-color 140ms ease, border-color 140ms ease; }
+}
+
+.date-fields select { min-height: 44px; border: 1px solid #8ba49b; border-radius: 8px; padding: .4rem .65rem; color: var(--ink); background: var(--surface); }
+.cluster-group { border-top: 1px solid var(--line); padding: .75rem 0; }
+.cluster-group summary { font-weight: 650; cursor: pointer; color: var(--accent); }
+.forecast-summary { padding-top: 0; }

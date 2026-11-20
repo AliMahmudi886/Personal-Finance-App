@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "finance_macros.html" import stored_amount %}
+{% block title %}Recurring expenses{% endblock %}
+{% block content %}
+<header class="overview-header"><div><h1>Recurring expenses</h1><p>Track expected payments and manually update their due dates.</p></div>
+    <a class="ds-button primary" href="{{ url_for('recurring_form') }}">Add reminder</a></header>
+<section class="surface overview-panel">
+    {% if reminders %}
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Recurring expense reminders">
+        <table class="ledger-table">
+            <thead><tr><th scope="col">Due date</th><th scope="col">Reminder</th><th scope="col">Frequency</th><th scope="col">Amount</th><th scope="col">Action</th></tr></thead>
+            <tbody>{% for id, name, amount, frequency, due in reminders %}
+                <tr><td>{{ due }}{% if due <= today %}<span class="status-label due-label">{{ 'Overdue' if due < today else 'Due today' }}</span>{% endif %}</td><td>{{ name }}</td><td>{{ frequency|capitalize }}</td><td>{{ stored_amount(amount) }}</td><td><a class="ds-button" href="{{ url_for('recurring_form', reminder_id=id) }}" aria-label="Edit {{ name }}">Edit</a></td></tr>
+            {% endfor %}</tbody>
+        </table>
+    </div>
+    {% else %}<p class="muted">Add a reminder to see your upcoming recurring expenses.</p>{% endif %}
+    <p class="muted section-note">Reminders stay separate from recorded expenses and cash flow.</p>
+</section>
+{% endblock %}

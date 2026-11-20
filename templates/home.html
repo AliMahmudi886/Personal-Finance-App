@@ -76,10 +76,11 @@
 </section>
 </div>
 {% endif %}
-<nav class="surface overview-panel secondary-links" aria-label="Goals and analytics">
-    <h2>Goals and analytics</h2>
+<nav class="surface overview-panel secondary-links" aria-label="Planning and analytics">
+    <h2>Planning and analytics</h2>
     <div class="actions">
         <a class="ds-button" href="{{ url_for('view_goals') }}">View goals</a><a class="ds-button" href="{{ url_for('add_goal') }}">Add goal</a>
+        <a class="ds-button" href="{{ url_for('recurring_expenses') }}">Recurring expenses</a>
         <a class="ds-button" href="{{ url_for('predict_expenses') }}">Predict expenses</a><a class="ds-button" href="{{ url_for('view_anomalies') }}">View anomalies</a>
         <a class="ds-button" href="{{ url_for('view_expense_clusters') }}">View clusters</a><a class="ds-button" href="{{ url_for('recommend_savings') }}">Spending reference</a>
     </div>

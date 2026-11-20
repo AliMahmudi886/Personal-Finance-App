@@ -46,8 +46,7 @@ def monthly_expenses(user_id):
     return monthly
 
 
-def train_lstm_model(user_id):
-    data = monthly_expenses(user_id)
+def train_lstm_model(data):
 
     if len(data) < 2:
         return None, None
@@ -77,13 +76,11 @@ def train_lstm_model(user_id):
     return model, scaler
 
 
-def predict_next_month_lstm(user_id, model, scaler):
+def predict_next_month_lstm(data, model, scaler):
     if not model or not scaler:
         return None
 
-    data = monthly_expenses(user_id)
-
-    if data.shape[0] < 1:
+    if data.empty:
         return None
 
     scaled_last_value = scaler.transform(data[["amount"]].tail(1))
@@ -102,7 +99,7 @@ def detect_anomalies(user_id):
     if data.shape[0] < 2:
         return pd.DataFrame()
 
-    model = IsolationForest(contamination=0.1)
+    model = IsolationForest(contamination=0.1, random_state=42)
     data["anomaly"] = model.fit_predict(data[["amount"]])
     anomalies = data[data["anomaly"] == -1].drop(columns=["anomaly"])
 

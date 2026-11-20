@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "finance_macros.html" import stored_amount %}
 {% block title %}Expenses{% endblock %}
 {% block content %}
 <header class="overview-header"><div><h1>Expenses</h1><p>{{ total }} {{ 'record' if total == 1 else 'records' }}</p></div><a class="ds-button primary" href="{{ url_for('add_expense') }}">Add expense</a></header>
@@ -13,7 +14,7 @@
         <table class="ledger-table">
             <thead><tr><th scope="col">Date</th><th scope="col">Category</th><th scope="col">Description</th><th scope="col">Amount</th></tr></thead>
             <tbody>{% for expense in expenses %}
-                <tr><td>{{ expense[4] }}</td><td>{{ expense[2] }}</td><td>{{ expense[5] or '' }}</td><td>{{ expense[3] }}</td></tr>
+                <tr><td>{{ expense[4] }}</td><td>{{ expense[2] }}</td><td>{{ expense[5] or '' }}</td><td>{{ stored_amount(expense[3]) }}</td></tr>
             {% endfor %}</tbody>
         </table>
     </div>

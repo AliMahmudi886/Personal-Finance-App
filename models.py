@@ -113,7 +113,9 @@ def create_income(user_id, source, amount, date):
 def get_income_by_user_id(user_id):
     conn = create_connection()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM income WHERE user_id = ?", (user_id,))
+    cur.execute(
+        "SELECT * FROM income WHERE user_id = ? ORDER BY date DESC, id DESC", (user_id,)
+    )
     income = cur.fetchall()
     conn.close()
     return income
@@ -251,3 +253,56 @@ def get_expense_page(user_id, query, page):
             (*values, size, (page - 1) * size),
         ).fetchall()
     return rows, page, pages, total
+
+
+def get_goal(user_id, goal_id):
+    with closing(create_connection()) as db:
+        return db.execute(
+            "SELECT goal, target_amount, current_amount FROM goals WHERE user_id = ? AND id = ?",
+            (user_id, goal_id),
+        ).fetchone()
+
+
+def update_goal(user_id, goal_id, name, target, current):
+    with closing(create_connection()) as db, db:
+        result = db.execute(
+            "UPDATE goals SET goal = ?, target_amount = ?, current_amount = ? WHERE user_id = ? AND id = ?",
+            (name, target, current, user_id, goal_id),
+        )
+        return result.rowcount == 1
+
+
+def get_recurring_expenses(user_id):
+    with closing(create_connection()) as db:
+        return db.execute(
+            """SELECT id, category, amount, frequency, next_due_date FROM recurring_expenses
+               WHERE user_id = ? ORDER BY next_due_date, id""",
+            (user_id,),
+        ).fetchall()
+
+
+def get_recurring_expense(user_id, reminder_id):
+    with closing(create_connection()) as db:
+        return db.execute(
+            """SELECT category, amount, frequency, next_due_date FROM recurring_expenses
+               WHERE user_id = ? AND id = ?""",
+            (user_id, reminder_id),
+        ).fetchone()
+
+
+def save_recurring_expense(user_id, reminder_id, category, amount, frequency, due):
+    with closing(create_connection()) as db, db:
+        fields = (category, amount, frequency, due, user_id)
+        if reminder_id is None:
+            db.execute(
+                """INSERT INTO recurring_expenses (category, amount, frequency, next_due_date, user_id)
+                   VALUES (?, ?, ?, ?, ?)""",
+                fields,
+            )
+            return True
+        result = db.execute(
+            """UPDATE recurring_expenses SET category = ?, amount = ?, frequency = ?, next_due_date = ?
+               WHERE user_id = ? AND id = ?""",
+            (*fields, reminder_id),
+        )
+        return result.rowcount == 1

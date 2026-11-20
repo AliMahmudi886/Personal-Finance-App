@@ -1,33 +1,17 @@
 {% extends "base.html" %}
-
+{% from "finance_macros.html" import stored_amount %}
+{% block title %}Income{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <h2 class="text-center">Your Income</h2>
-<table class="table table-bordered table-striped">
-    <thead>
-        <tr>
-            <th>Source</th>
-            <th>Amount</th>
-            <th>Date</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% if income %}
-            {% for record in income %}
-                <tr>
-                    <td>{{ record[2] }}</td>
-                    <td>{{ record[3] }}</td>
-                    <td>{{ record[4] }}</td>
-                </tr>
-            {% endfor %}
-        {% else %}
-            <tr>
-                <td colspan="3" class="text-center">No income records found</td>
-            </tr>
-        {% endif %}
-    </tbody>
-</table>
-            </div>
-</div>
+<header class="overview-header"><div><h1>Income</h1><p>{{ income|length }} {{ 'record' if income|length == 1 else 'records' }}</p></div>
+    <a class="ds-button primary" href="{{ url_for('add_income') }}">Add income</a></header>
+<section class="surface overview-panel">
+    {% if income %}
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Income records">
+        <table class="ledger-table">
+            <thead><tr><th scope="col">Date</th><th scope="col">Source</th><th scope="col">Amount</th></tr></thead>
+            <tbody>{% for record in income %}<tr><td>{{ record[4] }}</td><td>{{ record[2] }}</td><td>{{ stored_amount(record[3]) }}</td></tr>{% endfor %}</tbody>
+        </table>
+    </div>
+    {% else %}<p class="muted">No income recorded yet.</p>{% endif %}
+</section>
 {% endblock %}

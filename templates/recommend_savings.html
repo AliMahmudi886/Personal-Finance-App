@@ -1,26 +1,14 @@
 {% extends "base.html" %}
-
-{% block title %}Spending Reference{% endblock %}
-
+{% from "finance_macros.html" import stored_amount %}
+{% block title %}Spending reference{% endblock %}
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h2 class="text-center mb-4">Spending Reference</h2>
-                    {% if latest is not none %}
-                        <div class="alert alert-info text-center" role="alert">
-                            Most recent recorded expense: <strong>${{ "%.2f"|format(latest[1]) }}</strong> on {{ latest[0] }}.
-                        </div>
-                    {% else %}
-                        <div class="alert alert-warning text-center" role="alert">
-                            Record an expense to see it here.
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<header class="overview-header"><div><h1>Spending reference</h1><p>Review your latest recorded expense.</p></div>
+    <a class="ds-button" href="{{ url_for('view_expenses') }}">View expenses</a></header>
+<section class="surface metric">
+    {% if latest is not none %}
+    <h2>Most recent recorded expense</h2>
+    <p>{{ stored_amount(latest[1]) }}</p>
+    <small><time datetime="{{ latest[0] }}">{{ latest[0] }}</time></small>
+    {% else %}<p class="muted">Record an expense to see it here.</p>{% endif %}
+</section>
 {% endblock %}

@@ -1,33 +1,19 @@
 {% extends "base.html" %}
-
-{% block title %}Anomalies in Expenses{% endblock %}
-
+{% from "finance_macros.html" import stored_amount %}
+{% block title %}Expense anomalies{% endblock %}
 {% block content %}
-<div class="container mt-5">
-    <h2 class="text-center">Anomalies in Your Expenses</h2>
-    {% if error %}
-        <div class="alert alert-warning" role="status">{{ error }}</div>
-    {% elif anomalies.empty %}
-        <div class="alert alert-info text-center" role="alert">
-            No anomalies detected.
-        </div>
+<header class="overview-header">
+    <div><h1>Expense anomalies</h1><p>Months flagged for unusually high or low spending.</p></div>
+    <div class="actions"><a class="ds-button" href="{{ url_for('view_anomalies') }}">Isolation forest</a><a class="ds-button" href="{{ url_for('detect_anomalies_autoencoder_route') }}">Autoencoder</a></div>
+</header>
+<section class="surface overview-panel">
+    {% if error %}<p class="muted" role="status">{{ error }}</p>
+    {% elif anomalies.empty %}<p class="muted">No anomalies were identified in the available expense history.</p>
     {% else %}
-        <table class="table table-bordered table-striped mt-4">
-            <thead class="thead-dark">
-                <tr>
-                    <th>Date</th>
-                    <th>Amount</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for index, row in anomalies.iterrows() %}
-                <tr>
-                    <td>{{ row.name.strftime('%Y-%m-%d') }}</td>
-                    <td>${{ row['amount'] }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Flagged expense months">
+        <table class="ledger-table"><thead><tr><th scope="col">Month</th><th scope="col">Recorded expenses</th></tr></thead>
+        <tbody>{% for month, row in anomalies.iterrows() %}<tr><td>{{ month.strftime('%Y-%m') }}</td><td>{{ stored_amount(row['amount']) }}</td></tr>{% endfor %}</tbody></table>
+    </div>
     {% endif %}
-</div>
+</section>
 {% endblock %}

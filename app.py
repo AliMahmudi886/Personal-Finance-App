@@ -38,12 +38,17 @@ from models import (
     create_income,
     create_user,
     get_expense_page,
+    get_goal,
     get_goals_by_user_id,
     get_income_by_user_id,
     get_latest_expense,
+    get_recurring_expense,
+    get_recurring_expenses,
     get_user_by_id,
     get_user_by_username,
     init_db,
+    save_recurring_expense,
+    update_goal,
     update_user_profile,
 )
 from overview import financial_overview
@@ -203,13 +208,15 @@ def add_expense():
     if "user_id" not in session:
         return redirect(url_for("login"))
     if request.method == "POST":
-        category = request.form["category"]
         try:
+            category = required_label("category")
             amount = checked_amount(request.form["amount"])
             entered_date = transaction_date(request.form["date"])
         except (InvalidOperation, ValueError):
-            flash("Enter a valid amount and date.", "danger")
-            return render_template("add_expense.html"), 400
+            flash("Enter a name, a valid amount and a valid date.", "danger")
+            return render_template(
+                "add_expense.html", today=date.today().isoformat()
+            ), 400
         create_expense(
             session["user_id"],
             category,
@@ -219,7 +226,7 @@ def add_expense():
         )
         flash("Expense added!", "success")
         return redirect(url_for("view_expenses"))
-    return render_template("add_expense.html")
+    return render_template("add_expense.html", today=date.today().isoformat())
 
 
 @app.route("/view_expenses")
@@ -239,30 +246,126 @@ def view_expenses():
     )
 
 
+def required_label(name):
+    value = request.form.get(name, "").strip()
+    if not value or len(value) > 100:
+        raise ValueError("Enter a name between 1 and 100 characters.")
+    return value
+
+
 @app.route("/add_goal", methods=["GET", "POST"])
-def add_goal():
-    if "user_id" not in session:
+@app.route("/goals/<int:goal_id>/edit", methods=["GET", "POST"])
+def add_goal(goal_id=None):
+    if not g.user:
         return redirect(url_for("login"))
+    uid = g.user["id"]
+    record = get_goal(uid, goal_id) if goal_id is not None else ("", "", "0")
+    if record is None:
+        abort(404)
     if request.method == "POST":
-        goal = request.form["goal"]
         try:
-            target_amount = checked_amount(request.form["target_amount"])
-            current_amount = checked_amount(request.form["current_amount"])
-        except (InvalidOperation, ValueError):
-            flash("Enter valid goal amounts.", "danger")
-            return render_template("add_goal.html"), 400
-        create_goal(session["user_id"], goal, target_amount, current_amount)
-        flash("Goal added!", "success")
+            name = required_label("goal")
+            target = checked_amount(request.form.get("target_amount", ""))
+            current = checked_amount(request.form.get("current_amount", ""))
+            if Decimal(target) <= 0 or Decimal(current) < 0:
+                raise ValueError
+        except (ValueError, InvalidOperation):
+            flash(
+                "Enter a goal name, a positive target and a nonnegative saved amount.",
+                "danger",
+            )
+            return render_template(
+                "add_goal.html", record=record, editing=goal_id is not None
+            ), 400
+        if goal_id is None:
+            create_goal(uid, name, target, current)
+            flash("Goal added!", "success")
+        elif update_goal(uid, goal_id, name, target, current):
+            flash("Goal updated!", "success")
+        else:
+            abort(404)
         return redirect(url_for("view_goals"))
-    return render_template("add_goal.html")
+    return render_template("add_goal.html", record=record, editing=goal_id is not None)
 
 
 @app.route("/view_goals")
 def view_goals():
-    if "user_id" not in session:
+    if not g.user:
         return redirect(url_for("login"))
-    goals = get_goals_by_user_id(session["user_id"])
+    goals = []
+    for goal_id, _, name, target, current in get_goals_by_user_id(g.user["id"]):
+        progress = None
+        if (
+            isinstance(target, (float, int))
+            and isinstance(current, (float, int))
+            and isfinite(target)
+            and isfinite(current)
+            and target > 0
+            and current >= 0
+        ):
+            progress = (
+                100
+                if current >= target
+                else int(Decimal(str(current)) / Decimal(str(target)) * 100)
+            )
+        goals.append((goal_id, name, target, current, progress))
     return render_template("view_goals.html", goals=goals)
+
+
+@app.get("/recurring")
+def recurring_expenses():
+    if not g.user:
+        return redirect(url_for("login"))
+    return render_template(
+        "recurring_expenses.html",
+        reminders=get_recurring_expenses(g.user["id"]),
+        today=date.today().isoformat(),
+    )
+
+
+@app.route("/recurring/add", methods=["GET", "POST"])
+@app.route("/recurring/<int:reminder_id>/edit", methods=["GET", "POST"])
+def recurring_form(reminder_id=None):
+    if not g.user:
+        return redirect(url_for("login"))
+    uid = g.user["id"]
+    frequencies = ("daily", "weekly", "monthly", "yearly")
+    editing = reminder_id is not None
+    record = (
+        get_recurring_expense(uid, reminder_id)
+        if editing
+        else ("", "", "monthly", date.today().isoformat())
+    )
+    if record is None:
+        abort(404)
+    if request.method == "POST":
+        try:
+            category = required_label("category")
+            amount = checked_amount(request.form.get("amount", ""))
+            frequency = request.form.get("frequency")
+            due = transaction_date(request.form.get("next_due_date", ""))
+            if Decimal(amount) <= 0 or frequency not in frequencies:
+                raise ValueError
+        except (ValueError, InvalidOperation):
+            flash(
+                "Enter a reminder name, a positive amount, a frequency and a valid date.",
+                "danger",
+            )
+            return render_template(
+                "recurring_form.html",
+                record=record,
+                editing=editing,
+                frequencies=frequencies,
+            ), 400
+        if not save_recurring_expense(
+            uid, reminder_id, category, amount, frequency, due
+        ):
+            abort(404)
+        flash("Reminder saved.", "success")
+        return redirect(url_for("recurring_expenses"))
+    return render_template(
+        "recurring_form.html", record=record, editing=editing, frequencies=frequencies
+    )
 
 
 @app.route("/profile", methods=["GET", "POST"])
@@ -359,18 +462,20 @@ def add_income():
         return redirect(url_for("login"))
 
     if request.method == "POST":
-        source = request.form["source"]
         try:
+            source = required_label("source")
             amount = checked_amount(request.form["amount"])
             entered_date = transaction_date(request.form["date"])
         except (InvalidOperation, ValueError):
-            flash("Enter a valid amount and date.", "danger")
-            return render_template("add_income.html"), 400
+            flash("Enter a name, a valid amount and a valid date.", "danger")
+            return render_template(
+                "add_income.html", today=date.today().isoformat()
+            ), 400
         create_income(session["user_id"], source, amount, entered_date)
         flash("Income added!", "success")
         return redirect(url_for("view_income"))
 
-    return render_template("add_income.html")
+    return render_template("add_income.html", today=date.today().isoformat())
 
 
 @app.route("/view_income")
@@ -396,19 +501,24 @@ def predict_expenses():
             error="Not enough data available to make a prediction.",
         )
 
-    model, scaler = train_lstm_model(user_id)
+    model, scaler = train_lstm_model(expenses)
     if not model or not scaler:
         return render_template(
             "predict_expenses.html", error="Not enough data to train the model."
         )
 
-    next_month_prediction = predict_next_month_lstm(user_id, model, scaler)
+    next_month_prediction = predict_next_month_lstm(expenses, model, scaler)
     if next_month_prediction is None:
         return render_template(
             "predict_expenses.html", error="Not enough data to make a prediction."
         )
 
     next_month_prediction = float(next_month_prediction)
+    if not isfinite(next_month_prediction):
+        return render_template(
+            "predict_expenses.html",
+            error="The model did not produce a usable estimate.",
+        )
 
     dates = expenses.index.strftime("%Y-%m").tolist()
     amounts = expenses["amount"].tolist()
@@ -519,8 +629,9 @@ def expense_clusters():
                 n_clusters=n_clusters,
             )
 
-        flash("Not enough data for clustering.", "info")
-        return redirect(url_for("view_expenses"))
+        return render_template(
+            "expense_clusters.html", clusters={}, method=method, n_clusters=n_clusters
+        )
 
     return redirect(url_for("login"))
 

@@ -1,29 +1,24 @@
 {% extends "base.html" %}
-
-{% block title %}Predict Expenses{% endblock %}
-
+{% from "finance_macros.html" import money %}
+{% block title %}Expense prediction{% endblock %}
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h2 class="text-center mb-4">Expense Prediction</h2>
-                    {% if error %}
-                        <div class="alert alert-warning text-center">{{ error }}</div>
-                    {% else %}
-                        <h5 class="card-title text-center">Next Month's Predicted Expense: ${{ "{:,.2f}".format(prediction) }}</h5>
-                        <canvas id="expenseChart" class="mt-4"></canvas>
-                    {% endif %}
-                </div>
-            </div>
+<header class="overview-header"><div><h1>Expense prediction</h1><p>Compare recorded monthly spending with the model’s estimate for the following month.</p></div></header>
+{% if error %}
+<p class="surface overview-panel" role="status">{{ error }}</p>
+{% else %}
+<section class="surface overview-panel">
+    <div class="metric forecast-summary"><h2>Next month’s estimate</h2><p>{{ money(prediction) }}</p><small>Estimate based on recorded history.</small></div>
+    <canvas id="expenseChart" role="img" aria-label="Recorded and estimated monthly expenses. Values are available in the table below."></canvas>
+    <details class="cluster-group"><summary>View monthly values</summary>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Forecast values">
+            <table class="ledger-table"><thead><tr><th scope="col">Period</th><th scope="col">Amount</th></tr></thead>
+                <tbody>{% for label in labels %}<tr><td>{{ label }}</td><td>{{ money(actual_expenses[loop.index0] if not loop.last else prediction) }}</td></tr>{% endfor %}</tbody>
+            </table>
         </div>
-    </div>
-</div>
-
+    </details>
+</section>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    {% if not error %}
     var ctx = document.getElementById('expenseChart').getContext('2d');
     var expenseChart = new Chart(ctx, {
         type: 'line',
@@ -33,21 +28,22 @@
                 {
                     label: 'Actual Expenses',
                     data: {{ actual_expenses | tojson | safe }},
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: '#17634e',
+                    backgroundColor: '#dceee7',
                     fill: false
                 },
                 {
                     label: 'Predicted Expenses',
                     data: {{ predicted_expenses | tojson | safe }},
-                    borderColor: 'rgba(255, 99, 132, 1)',
-                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    borderColor: '#91602a',
+                    backgroundColor: '#f4ead7',
                     fill: false
                 }
             ]
         },
         options: {
             responsive: true,
+            animation: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? false : { duration: 250 },
             scales: {
                 x: {
                     display: true,
@@ -66,6 +62,6 @@
             }
         }
     });
-    {% endif %}
 </script>
+{% endif %}
 {% endblock %}

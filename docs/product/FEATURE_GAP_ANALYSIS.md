@@ -8,8 +8,8 @@
 | Currency and precision | Technically inadequate | Critical. The dashboard aggregates decimal representations of values read from the existing SQLite REAL columns. Exact persisted amounts and multi-currency accounting need a reviewed ledger model. |
 | Accounts, transfers and net worth | Missing | High. Define reconciliation and transfer semantics first. |
 | Budgeting and rollover | Missing | High. Depends on category rules, reporting periods and settlement semantics. |
-| Goal management | Partially implemented | Medium. Target and current amounts are recorded. Due dates, contribution history and progress displays remain open. |
-| Recurring transaction management | Missing from the interface | High. A table exists. Account-scoped CRUD, posting and duplicate protection are needed. |
+| Goal management | Partially implemented | Medium. Owners can edit names and amounts and see capped progress, while retaining the actual saved amount. Goal due dates and contribution history remain open. |
+| Recurring expense reminders | Partially implemented | High. Owners can create, edit and review dated reminders. Notifications, completion history and automatic ledger posting remain open. |
 | Forecast and anomaly detection | Partially implemented | Medium. Forecast, anomaly and cluster routes work in tests. Retraining cost and validation of forecast quality remain open. |
 | Import, export and bulk actions | Missing | Medium. Requires validation, access controls and duplicate handling. |
 | Authentication and profile | Partially implemented | High. Local flow works. Google remains unavailable pending account linking and production controls. |
