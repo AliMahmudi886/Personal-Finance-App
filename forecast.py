@@ -109,30 +109,31 @@ def has_repeated_reversed_spikes(previous, typical, threshold, direction):
     return False
 
 
-def estimate_level_shift(values, base_estimate):
+def estimate_level_shift(values):
     for length in range(12, 0, -1):
         if len(values) < length + 9:
             continue
         previous = values[-length - 9 : -length]
         typical = median(previous)
         spread = median(abs(value - typical) for value in previous)
-        threshold = max(4 * spread, abs(typical) / 5)
+        conservative_threshold = max(4 * spread, abs(typical) / 5)
         recent = values[-length:]
-        above = all(value > typical + threshold for value in recent)
-        below = all(value < typical - threshold for value in recent)
-        if not (above or below):
+        direction = 1 if recent[-1] > typical else -1
+        repeated = has_repeated_reversed_spikes(
+            values[-length - 36 : -length], typical, conservative_threshold, direction
+        )
+        if repeated and length < 3:
             continue
-        if length > 1:
-            return "Recent level shift", median(recent)
-        # A single extreme value is weak evidence of a persistent change.
-        if abs(recent[-1] - typical) <= abs(typical) * Decimal(
-            "0.60"
-        ) and not has_repeated_reversed_spikes(
-            values[-37:-1], typical, threshold, 1 if above else -1
-        ):
-            return "Possible level shift", base_estimate + Decimal("0.40") * (
-                recent[-1] - base_estimate
-            )
+        threshold = (
+            conservative_threshold
+            if repeated
+            else max(3 * spread, abs(typical) * Decimal("0.15"))
+        )
+        if any(direction * (value - typical) <= threshold for value in recent):
+            continue
+        if length == 1:
+            return "Possible level shift", recent[-1]
+        return "Recent level shift", median(recent)
     return None
 
 
@@ -158,8 +159,12 @@ def select_method(values):
         for name, observations in errors.items()
     }
     method = min(scores, key=scores.__getitem__)
-    if method != "Same month last year":
-        shift = estimate_level_shift(values, candidates[method])
+    # Protect a strong seasonal pattern, while letting a weak seasonal win yield to a shift.
+    seasonal = "Same month last year"
+    if method != seasonal or scores[method] >= Decimal("0.85") * min(
+        score for name, score in scores.items() if name != seasonal
+    ):
+        shift = estimate_level_shift(values)
         if shift is not None:
             return shift
     if method == "Same month last year" or scores[method] == 0:

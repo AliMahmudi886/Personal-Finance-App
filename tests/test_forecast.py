@@ -65,8 +65,6 @@ class ForecastTest(unittest.TestCase):
 
     def test_regime_change_requires_two_consistent_closed_months(self):
         stable = [Decimal(100)] * 20
-        _, spike_estimate = select_method(stable + [Decimal(175)])
-        self.assertEqual(spike_estimate, 100)
         for amount in (Decimal(175), Decimal(25)):
             for months in (2, 6, 12):
                 with self.subTest(amount=amount, months=months):
@@ -74,28 +72,25 @@ class ForecastTest(unittest.TestCase):
                     self.assertEqual(method, "Recent level shift")
                     self.assertEqual(shift_estimate, amount)
 
-    def test_single_moderate_change_only_partially_updates_forecast(self):
+    def test_first_change_can_use_latest_level_without_prior_reversals(self):
         history = [Decimal(100)] * 20
-        for observation, expected in ((140, 116), (60, 84)):
+        for observation in (140, 60, 175):
             with self.subTest(observation=observation):
                 method, estimate = select_method([*history, Decimal(observation)])
                 self.assertEqual(method, "Possible level shift")
-                self.assertEqual(estimate, expected)
+                self.assertEqual(estimate, observation)
 
-    def test_repeated_reversed_spikes_dampen_first_signal_but_not_a_confirmed_shift(
-        self,
-    ):
+    def test_repeated_spikes_require_three_closed_months_to_confirm_a_shift(self):
         stable = [Decimal(100)] * 20
         for unusual in (Decimal(150), Decimal(50)):
             with self.subTest(unusual=unusual):
                 one_spike = [*stable[:10], unusual, *stable[10:]]
-                self.assertIsNotNone(
-                    estimate_level_shift([*one_spike, unusual], Decimal(100))
-                )
+                self.assertIsNotNone(estimate_level_shift([*one_spike, unusual]))
                 prior = [*stable[:5], unusual, *stable[5:10], unusual, *stable[10:]]
-                self.assertIsNone(estimate_level_shift([*prior, unusual], Decimal(100)))
+                self.assertIsNone(estimate_level_shift([*prior, unusual]))
+                self.assertIsNone(estimate_level_shift([*prior, unusual, unusual]))
                 self.assertEqual(
-                    estimate_level_shift([*prior, unusual, unusual], Decimal(100)),
+                    estimate_level_shift([*prior, unusual, unusual, unusual]),
                     ("Recent level shift", unusual),
                 )
 

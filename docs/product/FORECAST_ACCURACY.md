@@ -98,3 +98,20 @@ On 3,072 synthetic targets using fresh seeds 2700–2731, both revisions and the
 | Aggregate across eight scenarios | 124.20 | 123.32 | 137.61 |
 
 Stable, trending, and seasonal cases were also unchanged. Results reflect synthetic data and provide no measurement of accuracy on real accounts.
+
+### Faster response with repeated-spike protection
+
+With no repeated isolated spikes in the same direction, a sufficiently large break can use the latest closed month's level immediately. A sustained run uses its median. After two historical reversals in the same direction, the selector keeps the more conservative threshold and requires three consecutive closed months. A seasonal model whose validation MAE is more than 15% lower than the best nonseasonal alternative stays protected.
+
+The table compares this revision, `eb1a351` and the last-closed-month baseline across identical synthetic targets. Seeds 3300–3331 were used for development and seeds 4100–4131 were reserved for the final comparison, with 384 targets per scenario. Reproduce the updated run with `python forecast_benchmark.py --seed 4100 --vary-shifts --include-mixed`.
+
+| Scenario | Previous MAE | Updated MAE | Baseline MAE |
+| --- | ---: | ---: | ---: |
+| One-off spikes | 154.04 | 151.61 | 212.51 |
+| Sustained increase | 146.99 | 117.65 | 125.91 |
+| Sustained decrease | 152.93 | 117.27 | 125.51 |
+| Temporary shift | 205.90 | 176.82 | 182.04 |
+| Sustained increase after a spike | 169.07 | 131.70 | 125.91 |
+| Aggregate across eight scenarios | 122.70 | 105.97 | 139.19 |
+
+Stable, trending, and seasonal cases were unchanged. The mixed case improved relative to the previous model but remained worse than the baseline. The results measure performance under this synthetic sampler. Real-account accuracy remains unverified.
