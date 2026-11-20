@@ -94,6 +94,16 @@ class ForecastTest(unittest.TestCase):
                     ("Recent level shift", unusual),
                 )
 
+    def test_isolated_spike_allows_confirmed_shift_to_override_weak_seasonal_fit(self):
+        from forecast_benchmark import simulated_spending
+
+        values = simulated_spending("shift after spike", seed=3301, vary_shifts=True)[
+            :43
+        ]
+        method, estimate = select_method(values)
+        self.assertEqual(method, "Recent level shift")
+        self.assertEqual(estimate, Decimal("1577.5"))
+
     def test_close_methods_are_averaged_only_when_the_blend_reduces_past_error(self):
         from forecast_benchmark import simulated_spending
 

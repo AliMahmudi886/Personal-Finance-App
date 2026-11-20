@@ -19,7 +19,7 @@ SCENARIOS = (
 )
 
 
-def simulated_spending(scenario, seed, *, vary_shifts=False):
+def simulated_spending(scenario, seed, *, vary_shifts=False, vary_precursor=False):
     random = Random(seed)
     seasonal = (320, 100, -170, 0, -200, 140, -90, -30, 50, 60, -120, 400)
     settings = Random(seed + 100_000)
@@ -30,6 +30,12 @@ def simulated_spending(scenario, seed, *, vary_shifts=False):
         if vary_shifts
         else (11, 26, 39, 44)
     )
+    mixed_onset = 39 if onset is None else onset
+    precursor_random = Random(seed + 200_000)
+    precursor_month = (
+        precursor_random.randint(25, mixed_onset - 3) if vary_precursor else 30
+    )
+    precursor_amount = precursor_random.randint(290, 1050) if vary_precursor else shift
     months = []
     for index in range(48):
         level = 1200
@@ -40,9 +46,9 @@ def simulated_spending(scenario, seed, *, vary_shifts=False):
         elif scenario == "one-off spikes" and index in spikes:
             level += settings.randint(290, 1050) if vary_shifts else 950
         elif scenario == "shift after spike":
-            if index == 30:
-                level += shift
-            if index >= (39 if onset is None else onset):
+            if index == precursor_month:
+                level += precursor_amount
+            if index >= mixed_onset:
                 level += shift
         elif scenario == "level shift" and index >= (
             onset if onset is not None else 39
@@ -63,7 +69,9 @@ def simulated_spending(scenario, seed, *, vary_shifts=False):
     return months
 
 
-def benchmark(first_seed=200, *, vary_shifts=False, include_mixed=False):
+def benchmark(
+    first_seed=200, *, vary_shifts=False, include_mixed=False, vary_precursor=False
+):
     today = date(2026, 1, 1)
     start = month_index(today) - 48
     scenarios = (*SCENARIOS, "shift after spike") if include_mixed else SCENARIOS
@@ -73,7 +81,12 @@ def benchmark(first_seed=200, *, vary_shifts=False, include_mixed=False):
                 [
                     (month_label(start + index), value)
                     for index, value in enumerate(
-                        simulated_spending(scenario, seed, vary_shifts=vary_shifts)
+                        simulated_spending(
+                            scenario,
+                            seed,
+                            vary_shifts=vary_shifts,
+                            vary_precursor=vary_precursor,
+                        )
                     )
                 ],
                 today,
@@ -106,9 +119,17 @@ if __name__ == "__main__":
         action="store_true",
         help="Include a permanent increase after a prior isolated spike.",
     )
+    parser.add_argument(
+        "--vary-precursor",
+        action="store_true",
+        help="Vary the time and amount of the earlier spike independently.",
+    )
     args = parser.parse_args()
     print(f"{'Scenario':<18} {'Targets':>7} {'Forecast MAE':>13} {'Baseline MAE':>13}")
     for scenario, targets, error, baseline in benchmark(
-        args.seed, vary_shifts=args.vary_shifts, include_mixed=args.include_mixed
+        args.seed,
+        vary_shifts=args.vary_shifts,
+        include_mixed=args.include_mixed,
+        vary_precursor=args.vary_precursor,
     ):
         print(f"{scenario:<18} {targets:>7} {error:>13.2f} {baseline:>13.2f}")

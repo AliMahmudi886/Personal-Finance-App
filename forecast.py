@@ -91,7 +91,7 @@ def forecast_candidates(values):
     return candidates
 
 
-def has_repeated_reversed_spikes(previous, typical, threshold, direction):
+def count_reversed_spikes(previous, typical, threshold, direction):
     # Only count completed excursions whose neighbors returned to the old level.
     normal_band = threshold / 2
     reversals = 0
@@ -105,11 +105,11 @@ def has_repeated_reversed_spikes(previous, typical, threshold, direction):
         ):
             reversals += 1
             if reversals == 2:
-                return True
-    return False
+                break
+    return reversals
 
 
-def estimate_level_shift(values):
+def estimate_level_shift(values, *, require_single_reversal=False):
     for length in range(12, 0, -1):
         if len(values) < length + 9:
             continue
@@ -119,9 +119,14 @@ def estimate_level_shift(values):
         conservative_threshold = max(4 * spread, abs(typical) / 5)
         recent = values[-length:]
         direction = 1 if recent[-1] > typical else -1
-        repeated = has_repeated_reversed_spikes(
+        reversals = count_reversed_spikes(
             values[-length - 36 : -length], typical, conservative_threshold, direction
         )
+        if require_single_reversal and (
+            reversals != 1 or spread > abs(typical) * Decimal("0.08")
+        ):
+            continue
+        repeated = reversals == 2
         if repeated and length < 3:
             continue
         threshold = (
@@ -159,14 +164,22 @@ def select_method(values):
         for name, observations in errors.items()
     }
     method = min(scores, key=scores.__getitem__)
-    # Protect a strong seasonal pattern, while letting a weak seasonal win yield to a shift.
     seasonal = "Same month last year"
-    if method != seasonal or scores[method] >= Decimal("0.85") * min(
-        score for name, score in scores.items() if name != seasonal
-    ):
+    shift = None
+    if method != seasonal:
         shift = estimate_level_shift(values)
-        if shift is not None:
-            return shift
+    else:
+        best_nonseasonal = min(
+            score for name, score in scores.items() if name != seasonal
+        )
+        if scores[method] >= Decimal("0.85") * best_nonseasonal:
+            shift = estimate_level_shift(values)
+        elif scores[method] >= Decimal("0.65") * best_nonseasonal:
+            # An isolated spike can overstate the advantage of the seasonal model.
+            # Require evidence of that pattern before overriding the usual threshold.
+            shift = estimate_level_shift(values, require_single_reversal=True)
+    if shift is not None:
+        return shift
     if method == "Same month last year" or scores[method] == 0:
         return method, candidates[method]
 

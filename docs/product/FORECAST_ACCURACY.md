@@ -115,3 +115,19 @@ The table compares this revision, `eb1a351` and the last-closed-month baseline a
 | Aggregate across eight scenarios | 122.70 | 105.97 | 139.19 |
 
 Stable, trending, and seasonal cases were unchanged. The mixed case improved relative to the previous model but remained worse than the baseline. The results measure performance under this synthetic sampler. Real-account accuracy remains unverified.
+
+### A sustained increase following an isolated spike
+
+The usual seasonal protection remains active. For a moderately better seasonal score, the selector can now accept an otherwise eligible level shift when it finds exactly one same-direction historical reversal and the preceding nine-month window has a median absolute deviation no greater than 8% of its center. Strong seasonal winners remain protected.
+
+Final evaluation used seeds 6100–6131, disjoint from development runs, across 3,072 targets and eight scenarios. In the mixed scenario, the precursor's timing and amount were sampled independently from the permanent increase. Run `python forecast_benchmark.py --seed 6100 --vary-shifts --include-mixed --vary-precursor`. The previous column uses model code from `25ede35` with the same updated sampler.
+
+| Scenario | Previous MAE | Updated MAE | Baseline MAE |
+| --- | ---: | ---: | ---: |
+| Sustained increase after a spike | 114.64 | 113.55 | 121.19 |
+| One-off spikes | 147.37 | 147.37 | 212.33 |
+| Sustained increase | 112.55 | 112.55 | 116.94 |
+| Sustained decrease | 111.48 | 111.48 | 118.97 |
+| Aggregate across eight scenarios | 101.12 | 100.98 | 134.72 |
+
+Stable, trending, seasonal, and temporary-shift results were exactly unchanged on this sample. The effect is small compared with the previous model, which also beat the baseline on this particular mixed sample. Real-account performance remains unverified.
