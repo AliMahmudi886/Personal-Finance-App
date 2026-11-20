@@ -5,7 +5,7 @@
 {% block content %}
 <style>
     body {
-        background: url('{{ url_for('static', filename='icons/backgroundprofile.jpg') }}') no-repeat center center;
+        background: url('{{ url_for('static', filename='icons/background2.jpg') }}') no-repeat center center;
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
@@ -45,9 +45,12 @@
             <div class="card-body">
                 <h2 class="text-center mb-4" style="color: #1a1a40;">Profile</h2>
                 <form method="POST" action="{{ url_for('profile') }}" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    {% if user.profile_image %}
                     <div class="form-group text-center">
-                        <img src="{{ url_for('static', filename='profile_images/' ~ user['profile_image']) }}" alt="Profile Image" class="profile-image-preview">
+                        <img src="{{ url_for('profile_image') }}" alt="Profile Image" class="profile-image-preview">
                     </div>
+                    {% endif %}
                     <div class="form-group">
                         <label for="username" class="form-label">Username</label>
                         <input type="text" class="form-control" name="username" id="username" value="{{ user['username'] }}" required>
@@ -58,7 +61,7 @@
                     </div>
                     <div class="form-group">
                         <label for="profile_image" class="form-label">Profile Image</label>
-                        <input type="file" class="form-control-file " name="profile_image" id="profile_image">
+                        <input type="file" class="form-control-file " name="profile_image" id="profile_image" accept="image/png,image/jpeg,image/webp">
                     </div>
                     <button type="submit" class="btn btn-primary btn-block">Update Profile</button>
                 </form>

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block title %}Expense Analytics{% endblock %}
+
+{% block content %}
+<h1>Expense analytics unavailable</h1>
+<p role="alert">Your expense history contains an amount or date that this report cannot process.</p>
+<a href="{{ url_for('view_expenses') }}">View your recorded expenses</a>
+{% endblock %}

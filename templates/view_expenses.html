@@ -12,6 +12,7 @@
             <th>Category</th>
             <th>Amount</th>
             <th>Date</th>
+            <th>Description</th>
         </tr>
     </thead>
     <tbody>
@@ -20,6 +21,7 @@
             <td>{{ expense[2] }}</td>
             <td>{{ expense[3] }}</td>
             <td>{{ expense[4] }}</td>
+            <td>{{ expense[5] or '' }}</td>
         </tr>
         {% endfor %}
     </tbody>

@@ -7,6 +7,7 @@
     <div class="col-md-6">
         <h2 class="text-center">Add Expense</h2>
         <form method="POST" action="{{ url_for('add_expense') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group">
                 <label for="category">Category</label>
                 <input type="text" class="form-control" name="category" id="category" required>
@@ -18,6 +19,10 @@
             <div class="form-group">
                 <label for="date">Date</label>
                 <input type="date" class="form-control" name="date" id="date" required>
+            </div>
+            <div class="form-group">
+                <label for="description">Description (optional)</label>
+                <input type="text" class="form-control" name="description" id="description">
             </div>
             <button type="submit" class="btn btn-primary btn-block">Add Expense</button>
         </form>

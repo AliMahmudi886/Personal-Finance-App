@@ -36,6 +36,7 @@
             <div class="card-body">
                 <h2 class="text-center mb-4" style="color: #1a1a40;">Login</h2>
                 <form method="POST" action="{{ url_for('login') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="form-group">
                         <label for="username" class="form-label">Username</label>
                         <input type="text" class="form-control" name="username" id="username" required>
@@ -45,7 +46,6 @@
                         <input type="password" class="form-control" name="password" id="password" required>
                     </div>
                     <button type="submit" class="btn btn-primary btn-block">Login</button>
-                    <a class="btn btn-outline-secondary btn-block mt-2" href="{{ url_for('google_login') }}">Login with Google</a>
                 </form>
             </div>
         </div>

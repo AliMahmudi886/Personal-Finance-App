@@ -1,46 +1,27 @@
-Expense Tracker and Analyzer
-Expense Tracker and Analyzer is a comprehensive personal finance management application designed to help users effectively monitor, analyze, and manage their expenses. Leveraging advanced machine learning algorithms and NLP, this app offers insightful expense clustering, anomaly detection, and predictive analytics, empowering users to make informed financial decisions.
+# Personal Finance App
 
-Key Features:
-Expense Tracking:
+A Flask and SQLite application for recording income, expenses and savings goals. It also provides experimental expense forecasts, anomaly views, expense clustering and a historical spending reference.
 
-Easily add and categorize expenses with a user-friendly interface.
-View detailed expense records with date, amount, category, and description.
-Clustering and Analysis:
+## Run locally on Windows
 
-Apply advanced clustering techniques (K-Means, Hierarchical, DBSCAN) to group similar expenses for deeper insights.
-Visualize expense clusters to identify spending patterns and optimize your budget.
-Anomaly Detection:
+The verified Python minor version is 3.12. Create a virtual environment and install the version-pinned runtime dependencies.
 
-Detect unusual spending activities using Isolation Forest and Autoencoder models.
-Get alerts on potential fraudulent transactions or unexpected spending spikes.
-Predictive Analytics:
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+New-Item -ItemType Directory -Force instance | Out-Null
+$env:FINANCE_DB_PATH = Join-Path (Get-Location) 'instance/personal_finance.sqlite3'
+$env:FINANCE_SECRET_KEY = & .\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(32))"
+$env:FINANCE_HTTPS = '0'
+.\.venv\Scripts\python.exe -m flask --app app:app run
+```
 
-Predict future expenses with an LSTM-based model trained on your historical data.
-Plan your budget more effectively by anticipating next month's expenses.
-Goal Setting and Tracking:
+Open http://127.0.0.1:5000 and register a local account. Keep the generated secret private and stable across restarts when session continuity matters. Google sign-in is unavailable pending review of account linking.
 
-Set financial goals and track your progress towards achieving them.
-Stay motivated with clear visualizations of your savings and goals.
-Income Management:
+To reuse a trusted existing ledger, back it up and set `FINANCE_DB_PATH` to its absolute path. Pay particular attention to this when switching from a checkout that tracked SQLite files. Analytics are experimental and use the existing SQLite storage format. See the [audit](docs/audit/MASTER_AUDIT_REPORT.md) for financial accuracy limitations.
 
-Record and categorize your income sources.
-Analyze your income patterns alongside your expenses for a complete financial overview.
-User Authentication and Security:
-
-Secure login with Google OAuth integration.
-Profile management with options to update username, password, and profile image.
-Interactive and Intuitive UI:
-
-Modern, responsive design with easy navigation.
-Visualize your data with clear, informative charts and graphs.
-Savings Recommendations:
-
-Get personalized savings plan recommendations based on your spending habits.
-Technical Highlights:
-Backend: Flask, SQLite, TensorFlow, Scikit-learn
-Frontend: HTML, CSS, JavaScript
-Machine Learning Models: LSTM for expense prediction, Isolation Forest for anomaly detection, K-Means, Hierarchical Clustering, and DBSCAN for expense clustering.
-Authentication: Google OAuth for secure user login.
-Deployment: Compatible with various hosting platforms for easy deployment.
-Expense Tracker and Analyzer is the ultimate tool for anyone looking to gain control over their finances, understand their spending habits, and achieve their financial goals with confidence.
+- [Architecture](docs/ARCHITECTURE.md)
+- [Testing](docs/TESTING.md)
+- [Deployment and recovery](docs/DEPLOYMENT.md)
+- [Security](docs/SECURITY.md)
+- [Remediation tracker](docs/audit/REMEDIATION_TRACKER.md)

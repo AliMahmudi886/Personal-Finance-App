@@ -5,7 +5,9 @@
 {% block content %}
 <div class="container mt-5">
     <h2 class="text-center">Anomalies in Your Expenses</h2>
-    {% if anomalies.empty %}
+    {% if error %}
+        <div class="alert alert-warning" role="status">{{ error }}</div>
+    {% elif anomalies.empty %}
         <div class="alert alert-info text-center" role="alert">
             No anomalies detected.
         </div>
