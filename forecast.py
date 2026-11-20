@@ -91,6 +91,29 @@ def forecast_candidates(values):
     return candidates
 
 
+def estimate_level_shift(values, base_estimate):
+    for length in range(12, 0, -1):
+        if len(values) < length + 9:
+            continue
+        previous = values[-length - 9 : -length]
+        typical = median(previous)
+        spread = median(abs(value - typical) for value in previous)
+        threshold = max(4 * spread, abs(typical) / 5)
+        recent = values[-length:]
+        above = all(value > typical + threshold for value in recent)
+        below = all(value < typical - threshold for value in recent)
+        if not (above or below):
+            continue
+        if length > 1:
+            return "Recent level shift", median(recent)
+        # A single extreme value is weak evidence of a persistent change.
+        if abs(recent[-1] - typical) <= abs(typical) * Decimal("0.60"):
+            return "Possible level shift", base_estimate + Decimal("0.40") * (
+                recent[-1] - base_estimate
+            )
+    return None
+
+
 def select_method(values):
     # Each candidate is scored over the same dates, using only closed months
     # that would have been known at that prediction's cutoff.
@@ -114,18 +137,9 @@ def select_method(values):
     }
     method = min(scores, key=scores.__getitem__)
     if method != "Same month last year":
-        for length in range(6, 1, -1):
-            if len(values) < length + 9:
-                continue
-            previous = values[-length - 9 : -length]
-            typical = median(previous)
-            spread = median(abs(value - typical) for value in previous)
-            threshold = max(4 * spread, abs(typical) / 5)
-            recent = values[-length:]
-            if all(value > typical + threshold for value in recent) or all(
-                value < typical - threshold for value in recent
-            ):
-                return "Recent level shift", median(recent)
+        shift = estimate_level_shift(values, candidates[method])
+        if shift is not None:
+            return shift
     if method == "Same month last year" or scores[method] == 0:
         return method, candidates[method]
 

@@ -62,3 +62,22 @@ Reproduce the synthetic runs with `python forecast_benchmark.py --seed 1100` in 
 | Aggregate | 108.82 | 108.56 |
 
 The synthetic preview account's MAE changed from 2,170.98 to 2,167.87 over 12 targets. These are small descriptive improvements. Accuracy on real accounts remains unverified.
+
+### Earlier response to a possible spending shift
+
+After one moderate break from the previous level, the forecast moves 40% of the way from the selected method toward that observation. The break must exceed the existing threshold and stay within 60% of the preceding median. Larger single observations require corroboration. A confirmed run now remains eligible for up to 12 months. The seasonal-method guard remains active.
+
+Compare this revision with `d32ff34` using the updated benchmark sampler and `python forecast_benchmark.py --seed 1500 --vary-shifts`. The earlier model uses the same new sampler. These 2,688 synthetic targets use fresh seeds 1500–1531, with varied shift onsets, shift sizes and spike sizes. The thresholds were chosen on earlier fixed-shape synthetic scenarios.
+
+| Scenario | Previous MAE | Updated MAE | Last-closed-month baseline MAE |
+| --- | ---: | ---: | ---: |
+| Stable | 48.93 | 48.93 | 57.52 |
+| Upward trend | 54.22 | 54.22 | 71.62 |
+| Seasonal | 52.85 | 52.85 | 215.38 |
+| One-off spikes | 148.18 | 158.05 | 210.01 |
+| Sustained increase | 170.28 | 160.04 | 129.08 |
+| Sustained decrease | 166.74 | 157.99 | 127.11 |
+| Temporary shift | 232.34 | 222.44 | 189.99 |
+| Aggregate | 124.79 | 122.08 | |
+
+The new strategy trades higher error on one-off spikes for a quicker response to changes. The last-closed-month baseline still beats both model versions on the three shift scenarios. Real-account performance remains unverified.

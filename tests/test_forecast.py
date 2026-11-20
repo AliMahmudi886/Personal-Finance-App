@@ -67,11 +67,19 @@ class ForecastTest(unittest.TestCase):
         _, spike_estimate = select_method(stable + [Decimal(175)])
         self.assertEqual(spike_estimate, 100)
         for amount in (Decimal(175), Decimal(25)):
-            for months in (2, 6):
+            for months in (2, 6, 12):
                 with self.subTest(amount=amount, months=months):
                     method, shift_estimate = select_method(stable + [amount] * months)
                     self.assertEqual(method, "Recent level shift")
                     self.assertEqual(shift_estimate, amount)
+
+    def test_single_moderate_change_only_partially_updates_forecast(self):
+        history = [Decimal(100)] * 20
+        for observation, expected in ((140, 116), (60, 84)):
+            with self.subTest(observation=observation):
+                method, estimate = select_method([*history, Decimal(observation)])
+                self.assertEqual(method, "Possible level shift")
+                self.assertEqual(estimate, expected)
 
     def test_close_methods_are_averaged_only_when_the_blend_reduces_past_error(self):
         from forecast_benchmark import simulated_spending
