@@ -39,6 +39,11 @@ def simulated_spending(scenario, seed, *, vary_shifts=False):
             level += seasonal[index % 12]
         elif scenario == "one-off spikes" and index in spikes:
             level += settings.randint(290, 1050) if vary_shifts else 950
+        elif scenario == "shift after spike":
+            if index == 30:
+                level += shift
+            if index >= (39 if onset is None else onset):
+                level += shift
         elif scenario == "level shift" and index >= (
             onset if onset is not None else 39
         ):
@@ -58,10 +63,11 @@ def simulated_spending(scenario, seed, *, vary_shifts=False):
     return months
 
 
-def benchmark(first_seed=200, *, vary_shifts=False):
+def benchmark(first_seed=200, *, vary_shifts=False, include_mixed=False):
     today = date(2026, 1, 1)
     start = month_index(today) - 48
-    for scenario in SCENARIOS:
+    scenarios = (*SCENARIOS, "shift after spike") if include_mixed else SCENARIOS
+    for scenario in scenarios:
         reports = [
             build_forecast(
                 [
@@ -95,9 +101,14 @@ if __name__ == "__main__":
         action="store_true",
         help="Vary timing and size of abrupt changes and spikes.",
     )
+    parser.add_argument(
+        "--include-mixed",
+        action="store_true",
+        help="Include a permanent increase after a prior isolated spike.",
+    )
     args = parser.parse_args()
     print(f"{'Scenario':<18} {'Targets':>7} {'Forecast MAE':>13} {'Baseline MAE':>13}")
     for scenario, targets, error, baseline in benchmark(
-        args.seed, vary_shifts=args.vary_shifts
+        args.seed, vary_shifts=args.vary_shifts, include_mixed=args.include_mixed
     ):
         print(f"{scenario:<18} {targets:>7} {error:>13.2f} {baseline:>13.2f}")

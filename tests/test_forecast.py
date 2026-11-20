@@ -6,6 +6,7 @@ from forecast import (
     MIN_HISTORY,
     build_forecast,
     closed_month_history,
+    estimate_level_shift,
     month_index,
     month_label,
     select_method,
@@ -80,6 +81,23 @@ class ForecastTest(unittest.TestCase):
                 method, estimate = select_method([*history, Decimal(observation)])
                 self.assertEqual(method, "Possible level shift")
                 self.assertEqual(estimate, expected)
+
+    def test_repeated_reversed_spikes_dampen_first_signal_but_not_a_confirmed_shift(
+        self,
+    ):
+        stable = [Decimal(100)] * 20
+        for unusual in (Decimal(150), Decimal(50)):
+            with self.subTest(unusual=unusual):
+                one_spike = [*stable[:10], unusual, *stable[10:]]
+                self.assertIsNotNone(
+                    estimate_level_shift([*one_spike, unusual], Decimal(100))
+                )
+                prior = [*stable[:5], unusual, *stable[5:10], unusual, *stable[10:]]
+                self.assertIsNone(estimate_level_shift([*prior, unusual], Decimal(100)))
+                self.assertEqual(
+                    estimate_level_shift([*prior, unusual, unusual], Decimal(100)),
+                    ("Recent level shift", unusual),
+                )
 
     def test_close_methods_are_averaged_only_when_the_blend_reduces_past_error(self):
         from forecast_benchmark import simulated_spending

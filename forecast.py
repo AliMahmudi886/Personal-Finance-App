@@ -91,6 +91,24 @@ def forecast_candidates(values):
     return candidates
 
 
+def has_repeated_reversed_spikes(previous, typical, threshold, direction):
+    # Only count completed excursions whose neighbors returned to the old level.
+    normal_band = threshold / 2
+    reversals = 0
+    for before, unusual, after in zip(
+        previous, previous[1:], previous[2:], strict=False
+    ):
+        if (
+            abs(before - typical) <= normal_band
+            and direction * (unusual - typical) > threshold
+            and abs(after - typical) <= normal_band
+        ):
+            reversals += 1
+            if reversals == 2:
+                return True
+    return False
+
+
 def estimate_level_shift(values, base_estimate):
     for length in range(12, 0, -1):
         if len(values) < length + 9:
@@ -107,7 +125,11 @@ def estimate_level_shift(values, base_estimate):
         if length > 1:
             return "Recent level shift", median(recent)
         # A single extreme value is weak evidence of a persistent change.
-        if abs(recent[-1] - typical) <= abs(typical) * Decimal("0.60"):
+        if abs(recent[-1] - typical) <= abs(typical) * Decimal(
+            "0.60"
+        ) and not has_repeated_reversed_spikes(
+            values[-37:-1], typical, threshold, 1 if above else -1
+        ):
             return "Possible level shift", base_estimate + Decimal("0.40") * (
                 recent[-1] - base_estimate
             )

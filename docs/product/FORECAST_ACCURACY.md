@@ -81,3 +81,20 @@ Compare this revision with `d32ff34` using the updated benchmark sampler and `py
 | Aggregate | 124.79 | 122.08 | |
 
 The new strategy trades higher error on one-off spikes for a quicker response to changes. The last-closed-month baseline still beats both model versions on the three shift scenarios. Real-account performance remains unverified.
+
+### Repeated one-month spikes
+
+A first moderate change no longer triggers the early adjustment when the preceding 36 closed months contain at least two same-direction excursions that immediately returned near the old spending level. A confirmed consecutive shift still takes precedence. Requiring two reversals avoids suppressing a sustained change solely because one earlier spike occurred.
+
+On 3,072 synthetic targets using fresh seeds 2700–2731, both revisions and the last-closed-month baseline used identical targets. Reproduce the current runs with `python forecast_benchmark.py --seed 2700 --vary-shifts --include-mixed`. The previous results use the same updated sampler with model code from `5c7aaf3`.
+
+| Scenario | Previous MAE | Updated MAE | Baseline MAE |
+| --- | ---: | ---: | ---: |
+| One-off spikes | 162.17 | 155.09 | 219.71 |
+| Sustained increase | 148.56 | 148.56 | 122.56 |
+| Sustained decrease | 149.09 | 149.09 | 121.47 |
+| Temporary shift | 197.02 | 197.02 | 167.61 |
+| Sustained increase after a spike | 172.43 | 172.43 | 122.56 |
+| Aggregate across eight scenarios | 124.20 | 123.32 | 137.61 |
+
+Stable, trending, and seasonal cases were also unchanged. Results reflect synthetic data and provide no measurement of accuracy on real accounts.
