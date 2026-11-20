@@ -24,7 +24,7 @@
     </article>
     <article class="surface metric">
         <h2>Baseline error</h2><p>{{ money(forecast.baseline_error) }}</p>
-        <small>Mean absolute error when repeating the last closed month</small>
+        <small>Mean absolute error when repeating the last closed month. Its estimate for {{ forecast.target }} is {{ money(forecast.history[-1][1]) }}.</small>
     </article>
 </section>
 {% if forecast.mean_error > forecast.baseline_error %}

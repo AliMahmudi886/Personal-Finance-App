@@ -448,6 +448,10 @@ class FinanceTest(unittest.TestCase):
         self.assertEqual(page.status_code, 200)
         self.assertIn(b"expenseChart", page.data)
         self.assertIn(b"$37.50", page.data)
+        self.assertIn(
+            f"Its estimate for {month_label(current + 1)} is $37.50.".encode(),
+            page.data,
+        )
         self.assertIn(month_label(current + 1).encode(), page.data)
         self.assertNotIn(b"9000000", page.data)
         self.assertNotIn(b"1000000", page.data)

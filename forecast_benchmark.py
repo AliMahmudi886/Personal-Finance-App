@@ -7,7 +7,15 @@ from statistics import mean
 
 from forecast import build_forecast, month_index, month_label
 
-SCENARIOS = ("stable", "trend", "seasonal", "one-off spikes", "level shift")
+SCENARIOS = (
+    "stable",
+    "trend",
+    "seasonal",
+    "one-off spikes",
+    "level shift",
+    "downward shift",
+    "temporary shift",
+)
 
 
 def simulated_spending(scenario, seed):
@@ -23,6 +31,10 @@ def simulated_spending(scenario, seed):
         elif scenario == "one-off spikes" and index in (11, 26, 39, 44):
             level += 950
         elif scenario == "level shift" and index >= 39:
+            level += 500
+        elif scenario == "downward shift" and index >= 34:
+            level -= 500
+        elif scenario == "temporary shift" and 34 <= index < 42:
             level += 500
         months.append(Decimal(level + random.randint(-85, 85)))
     return months

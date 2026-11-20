@@ -33,3 +33,9 @@ The updated selector adds a 12-month linear regression and can favor the recent 
 The selector now checks for two to six consecutive closed months that all exceed the same upper or lower threshold relative to the preceding nine months. One exceptional month cannot trigger this rule. The earlier seasonal-method guard is retained.
 
 A repeat comparison with seeds 400–431 used the same five scenario definitions and 1,920 forecast targets. Mean absolute error under a sustained increase fell from 180.75 to 161.50. The last-closed-month baseline scored 128.56. The other four scenarios had identical mean absolute errors to the reported hundredth. This remains synthetic validation, including the level-shift scenario, which simulates an increase. Unit tests also verify detection of repeated decreases.
+
+### Comparing the baseline estimate
+
+The benchmark also covers a persistent decrease and a temporary eight-month increase. In exploratory runs, emphasizing recent errors improved the sustained increase case but worsened stable, trending, and intermittent-spike cases. A longer shift-detection window produced mixed results across sustained increases, decreases, and temporary changes on seeds 700–731. The selection policy therefore retains its previous windows.
+
+The forecast page now shows the baseline estimate for the same target month beside its historical error. It repeats the last closed month's total, so users can compare both current estimates and their past errors at the same horizon.
