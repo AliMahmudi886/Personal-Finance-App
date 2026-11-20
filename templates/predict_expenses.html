@@ -1,67 +1,79 @@
 {% extends "base.html" %}
 {% from "finance_macros.html" import money %}
-{% block title %}Expense prediction{% endblock %}
+{% block title %}Expense forecast{% endblock %}
 {% block content %}
-<header class="overview-header"><div><h1>Expense prediction</h1><p>Compare recorded monthly spending with the model’s estimate for the following month.</p></div></header>
-{% if error %}
-<p class="surface overview-panel" role="status">{{ error }}</p>
-{% else %}
+<header class="overview-header">
+    <div><h1>Expense forecast</h1><p>Estimate net expenses for the next calendar month from completed months of your ledger.</p></div>
+    <a class="ds-button" href="{{ url_for('view_expenses') }}">View expenses</a>
+</header>
+{% if forecast is none %}
 <section class="surface overview-panel">
-    <div class="metric forecast-summary"><h2>Next month’s estimate</h2><p>{{ money(prediction) }}</p><small>Estimate based on recorded history.</small></div>
-    <canvas id="expenseChart" role="img" aria-label="Recorded and estimated monthly expenses. Values are available in the table below."></canvas>
+    <h2>More history needed</h2>
+    <p>{{ closed_count }} of {{ minimum }} consecutive completed months with recorded expenses are available.</p>
+    <p class="muted">The current month and future-dated entries are excluded. A month without records breaks the sequence because its spending is unknown.</p>
+</section>
+{% else %}
+<section class="metric-grid" aria-label="Forecast and backtest">
+    <article class="surface metric cash-flow">
+        <h2>Estimated expenses · {{ forecast.target }}</h2><p>{{ money(forecast.amount) }}</p>
+        <small>{{ forecast.method }} · {{ forecast.history|length }} completed months</small>
+    </article>
+    <article class="surface metric">
+        <h2>Mean absolute error</h2><p>{{ money(forecast.mean_error) }}</p>
+        <small>{{ forecast.backtest|length }} backtested months{% if forecast.wape is not none %} · {{ '{:,.1f}'.format(forecast.wape) }}% of total absolute spending{% endif %}</small>
+    </article>
+    <article class="surface metric">
+        <h2>Baseline error</h2><p>{{ money(forecast.baseline_error) }}</p>
+        <small>Mean absolute error when repeating the last closed month</small>
+    </article>
+</section>
+<section class="surface overview-panel">
+    <h2>Recorded expenses and estimate</h2>
+    <p class="muted">The month in progress is left blank. Refunds reduce net expenses.</p>
+    {% if forecast.typical_error is not none %}
+    <p class="section-note">Historical error reference: <strong>±{{ money(forecast.typical_error) }}</strong>. This is the 80th percentile of past absolute errors, with {{ forecast.backtest|length }} observations.</p>
+    {% endif %}
+    <canvas id="expenseChart" role="img" aria-label="Recorded expenses and the forecast. Values are available in the table below."></canvas>
     <details class="cluster-group"><summary>View monthly values</summary>
         <div class="table-scroll" tabindex="0" role="region" aria-label="Forecast values">
             <table class="ledger-table"><thead><tr><th scope="col">Period</th><th scope="col">Amount</th></tr></thead>
-                <tbody>{% for label in labels %}<tr><td>{{ label }}</td><td>{{ money(actual_expenses[loop.index0] if not loop.last else prediction) }}</td></tr>{% endfor %}</tbody>
+                <tbody>{% for period, amount in forecast.history[-24:] %}<tr><td>{{ period }}</td><td>{{ money(amount) }}</td></tr>{% endfor %}
+                <tr><th scope="row">{{ forecast.target }} estimate</th><td>{{ money(forecast.amount) }}</td></tr></tbody>
             </table>
+        </div>
+    </details>
+    <details class="cluster-group"><summary>View historical accuracy tests</summary>
+        <p>Each test uses only the months that would have been closed when that forecast was made. The selected method can differ between tests.</p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Forecast backtest">
+            <table class="ledger-table"><thead><tr><th scope="col">Month</th><th scope="col">Actual</th><th scope="col">Forecast</th><th scope="col">Baseline</th></tr></thead>
+            <tbody>{% for period, actual, estimate, baseline in forecast.backtest %}
+            <tr><td>{{ period }}</td><td>{{ money(actual) }}</td><td>{{ money(estimate) }}</td><td>{{ money(baseline) }}</td></tr>
+            {% endfor %}</tbody></table>
         </div>
     </details>
 </section>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    var ctx = document.getElementById('expenseChart').getContext('2d');
-    var expenseChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: {{ labels | tojson | safe }},
-            datasets: [
-                {
-                    label: 'Actual Expenses',
-                    data: {{ actual_expenses | tojson | safe }},
-                    borderColor: '#17634e',
-                    backgroundColor: '#dceee7',
-                    fill: false
-                },
-                {
-                    label: 'Predicted Expenses',
-                    data: {{ predicted_expenses | tojson | safe }},
-                    borderColor: '#91602a',
-                    backgroundColor: '#f4ead7',
-                    fill: false
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            animation: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? false : { duration: 250 },
-            scales: {
-                x: {
-                    display: true,
-                    title: {
-                        display: true,
-                        text: 'Date'
-                    }
-                },
-                y: {
-                    display: true,
-                    title: {
-                        display: true,
-                        text: 'Amount'
-                    }
-                }
+    if (typeof Chart !== 'undefined') {
+        const data = {{ chart | tojson }};
+        new Chart(document.getElementById('expenseChart'), {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [
+                    { label: 'Recorded', data: data.actual, borderColor: '#17634e', backgroundColor: '#17634e' },
+                    { label: 'Estimate', data: data.estimate, borderColor: '#91602a', backgroundColor: '#91602a', pointRadius: 6 }
+                ]
+            },
+            options: {
+                responsive: true,
+                animation: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? false : { duration: 250 },
+                scales: { y: { title: { display: true, text: 'Net expenses ($)' } } }
             }
-        }
-    });
+        });
+    } else {
+        document.getElementById('expenseChart').hidden = true;
+    }
 </script>
 {% endif %}
 {% endblock %}

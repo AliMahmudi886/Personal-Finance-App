@@ -46,53 +46,6 @@ def monthly_expenses(user_id):
     return monthly
 
 
-def train_lstm_model(data):
-
-    if len(data) < 2:
-        return None, None
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaled_data = scaler.fit_transform(data[["amount"]])
-
-    X, y = [], []
-    for i in range(len(scaled_data) - 1):
-        X.append(scaled_data[i])
-        y.append(scaled_data[i + 1])
-    X, y = np.array(X), np.array(y)
-
-    X = np.reshape(X, (X.shape[0], 1, X.shape[1]))
-
-    from tensorflow.keras import Input, Sequential
-    from tensorflow.keras.layers import LSTM, Dense
-
-    model = Sequential()
-    model.add(Input(shape=(X.shape[1], X.shape[2])))
-    model.add(LSTM(units=50, return_sequences=True))
-    model.add(LSTM(units=50))
-    model.add(Dense(1))
-
-    model.compile(loss="mean_squared_error", optimizer="adam")
-    model.fit(X, y, epochs=20, batch_size=1, verbose=0)
-
-    return model, scaler
-
-
-def predict_next_month_lstm(data, model, scaler):
-    if not model or not scaler:
-        return None
-
-    if data.empty:
-        return None
-
-    scaled_last_value = scaler.transform(data[["amount"]].tail(1))
-    scaled_last_value = np.reshape(scaled_last_value, (1, 1, 1))
-
-    prediction = model.predict(scaled_last_value, verbose=0)
-    prediction = scaler.inverse_transform(prediction)
-    next_month_prediction = prediction[0, 0]
-
-    return next_month_prediction
-
-
 def detect_anomalies(user_id):
     data = monthly_expenses(user_id)
 

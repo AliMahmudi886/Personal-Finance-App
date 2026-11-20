@@ -424,6 +424,34 @@ class FinanceTest(unittest.TestCase):
         self.assertIn(b"Expense analytics unavailable", response.data)
         self.assertIn(b"invalid-date", self.client.get("/view_expenses").data)
 
+    def test_forecast_uses_only_closed_months_from_signed_in_account(self):
+        from datetime import date
+
+        from forecast import MIN_HISTORY, month_index, month_label
+        from models import create_expense, get_user_by_username
+
+        self.sign_in(self.client, "forecast-owner")
+        other = self.app.test_client()
+        self.sign_in(other, "forecast-other")
+        uid = get_user_by_username("forecast-owner")[0]
+        outsider = get_user_by_username("forecast-other")[0]
+        today = date.today()
+        current = month_index(today)
+        self.assertIn(b"More history needed", self.client.get("/predict_expenses").data)
+        for month in range(current - MIN_HISTORY, current):
+            create_expense(uid, "Fixture", "37.50", month_label(month) + "-01", "")
+            create_expense(
+                outsider, "Unrelated", "1000000", month_label(month) + "-01", ""
+            )
+        create_expense(uid, "Open month", "9000000", today.isoformat(), "")
+        page = self.client.get("/predict_expenses")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn(b"expenseChart", page.data)
+        self.assertIn(b"$37.50", page.data)
+        self.assertIn(month_label(current + 1).encode(), page.data)
+        self.assertNotIn(b"9000000", page.data)
+        self.assertNotIn(b"1000000", page.data)
+
     @unittest.skipUnless(
         os.environ.get("FINANCE_TEST_ML") == "1", "requires TensorFlow runtime"
     )
@@ -440,7 +468,6 @@ class FinanceTest(unittest.TestCase):
                     "description": "train ticket",
                 },
             )
-        self.assertIn(b"Next Month", self.client.get("/predict_expenses").data)
         self.assertEqual(
             self.client.get("/detect_anomalies_autoencoder").status_code, 200
         )

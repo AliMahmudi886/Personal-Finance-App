@@ -22,15 +22,13 @@ from flask_bcrypt import Bcrypt
 from flask_wtf.csrf import CSRFProtect
 from PIL import Image
 
+from forecast import MIN_HISTORY, forecast_for_user, month_index, month_label
 from ml_model import (
     InvalidExpenseHistory,
     cluster_expenses,
     detect_anomalies,
     detect_anomalies_autoencoder,
-    monthly_expenses,
-    predict_next_month_lstm,
     train_autoencoder,
-    train_lstm_model,
 )
 from models import (
     create_expense,
@@ -489,50 +487,29 @@ def view_income():
 
 @app.route("/predict_expenses")
 def predict_expenses():
-    if "user_id" not in session:
+    if not g.user:
         return redirect(url_for("login"))
+    today = date.today()
+    try:
+        forecast, closed_count = forecast_for_user(g.user["id"], today)
+    except ValueError as error:
+        raise InvalidExpenseHistory from error
 
-    user_id = session["user_id"]
-
-    expenses = monthly_expenses(user_id)
-    if expenses.empty or expenses.shape[0] < 2:  # Check for sufficient historical data
-        return render_template(
-            "predict_expenses.html",
-            error="Not enough data available to make a prediction.",
-        )
-
-    model, scaler = train_lstm_model(expenses)
-    if not model or not scaler:
-        return render_template(
-            "predict_expenses.html", error="Not enough data to train the model."
-        )
-
-    next_month_prediction = predict_next_month_lstm(expenses, model, scaler)
-    if next_month_prediction is None:
-        return render_template(
-            "predict_expenses.html", error="Not enough data to make a prediction."
-        )
-
-    next_month_prediction = float(next_month_prediction)
-    if not isfinite(next_month_prediction):
-        return render_template(
-            "predict_expenses.html",
-            error="The model did not produce a usable estimate.",
-        )
-
-    dates = expenses.index.strftime("%Y-%m").tolist()
-    amounts = expenses["amount"].tolist()
-
-    labels = dates + ["Next Month"]
-    actual_expenses = amounts + [None]
-    predicted_expenses = [None] * len(amounts) + [next_month_prediction]
-
+    chart = None
+    if forecast is not None:
+        history = forecast.history[-24:]
+        chart = {
+            "labels": [label for label, _ in history]
+            + [month_label(month_index(today)), forecast.target],
+            "actual": [float(value) for _, value in history] + [None, None],
+            "estimate": [None] * (len(history) + 1) + [float(forecast.amount)],
+        }
     return render_template(
         "predict_expenses.html",
-        prediction=next_month_prediction,
-        labels=labels,
-        actual_expenses=actual_expenses,
-        predicted_expenses=predicted_expenses,
+        forecast=forecast,
+        chart=chart,
+        closed_count=closed_count,
+        minimum=MIN_HISTORY,
     )
 
 

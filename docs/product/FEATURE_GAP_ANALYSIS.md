@@ -10,7 +10,7 @@
 | Budgeting and rollover | Missing | High. Depends on category rules, reporting periods and settlement semantics. |
 | Goal management | Partially implemented | Medium. Owners can edit names and amounts and see capped progress, while retaining the actual saved amount. Goal due dates and contribution history remain open. |
 | Recurring expense reminders | Partially implemented | High. Owners can create, edit and review dated reminders. Notifications, completion history and automatic ledger posting remain open. |
-| Forecast and anomaly detection | Partially implemented | Medium. Forecast, anomaly and cluster routes work in tests. Retraining cost and validation of forecast quality remain open. |
+| Forecast and anomaly detection | Partially implemented | Medium. Expense forecasts use time-ordered model selection and display backtest error. Forecast validation on real accounts and further anomaly and clustering evaluation remain open. [Forecast methodology](FORECAST_ACCURACY.md) |
 | Import, export and bulk actions | Missing | Medium. Requires validation, access controls and duplicate handling. |
 | Authentication and profile | Partially implemented | High. Local flow works. Google remains unavailable pending account linking and production controls. |
 | Accessibility and personalization | Partially implemented | Medium. Shared focus styles, skip link and responsive layouts are present. Per-user preferences and an assistive-technology review remain open. |
