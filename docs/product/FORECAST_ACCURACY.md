@@ -131,3 +131,26 @@ Final evaluation used seeds 6100–6131, disjoint from development runs, across 
 | Aggregate across eight scenarios | 101.12 | 100.98 | 134.72 |
 
 Stable, trending, seasonal, and temporary-shift results were exactly unchanged on this sample. The effect is small compared with the previous model, which also beat the baseline on this particular mixed sample. Real-account performance remains unverified.
+
+## External validation on anonymized bank debits
+
+The PKDD’99 Financial (Berka) transaction table covers 1993–1998. This benchmark reads only `trans.asc`. The [CTU dataset catalog](https://relational.fel.cvut.cz/dataset/Financial) identifies the challenge source. The [original field descriptions, mirrored as a PDF](https://raw.githubusercontent.com/ldaniel/Predictive-Analytics/master/enunciation/PKDD%2799%C2%A0Discovery%C2%A0Challenge.pdf) document transaction directions. The transaction table used was [the pinned public mirror](https://raw.githubusercontent.com/jlacko/berka-dataset/77e9972a1ead107e5f42a91dd989d587bff055a4/trans.asc), SHA-256 `75ab2f39df9d79d79c5c900de90ddd28248b689f214598ac9fa2ff0f574a70d2`. No rows or account identifiers are included in this repository or in benchmark output.
+
+Sum debit types `VYDAJ` and `VYBER` per account and month, in Czech koruna. Exclude the first observed transaction month of each account because it could be partial, and split at gaps in debit history. Use at least 14 contiguous known months and the application's two-month horizon. Repeating the last known total is the baseline. The reference model revision is `25ede35`.
+
+The overall cohort uses up to the latest 12 eligible targets per account. Event cohorts use all qualifying targets. A first high month must exceed the preceding nine-month median by more than either 25% of that median or four median absolute deviations, whichever is larger. The immediately preceding month must be within half the threshold. In the main cohort, the next two observed months remain above the threshold and exactly one earlier high month reverted to normal, as identified by both neighboring months in the preceding 36 months. Outcomes label the event cohorts only. Each model sees data through the cutoff, before the two subsequent outcomes. The paired percentile bootstrap resamples accounts, preserving dependence among multiple targets from the same account.
+
+Run `python real_forecast_benchmark.py PATH_TO_TRANS_ASC` from a checkout that contains the reference Git object. Debit totals are a proxy for expenses and include withdrawals, transfers, fees and other debits. Credits, including potential refunds, are excluded. This is one historical bank dataset, so the results describe this benchmark population.
+
+### External results
+
+The input had 651,237 debits from 4,500 accounts. The overall window used 42,098 targets from 3,954 eligible accounts. Errors below are MAE in CZK.
+
+| Cohort | Accounts | Targets | Changed estimates | Previous MAE | Current MAE | Baseline MAE |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Sustained increase after one prior spike | 293 | 324 | 15 | 13,450.23 | 13,586.74 | 13,293.76 |
+| Other sustained increases | 682 | 874 | 7 | 11,142.78 | 11,153.11 | 10,115.78 |
+| Isolated spike with return to normal | 1,992 | 3,470 | 30 | 12,508.15 | 12,557.29 | 20,717.05 |
+| Latest 12 eligible targets per account | 3,954 | 42,098 | 149 | 9,879.66 | 9,894.34 | 11,371.30 |
+
+On the primary cohort the current model's MAE was 136.51 CZK higher than the previous model and 292.98 CZK higher than the baseline. The corresponding paired 95% bootstrap intervals were [−14.77, 369.70] and [−235.80, 822.74] CZK. Both include zero. This external test did not reproduce the synthetic improvement. The cohort and aggregate rows overlap. The forecasting engine was not tuned on these data or modified in this evaluation.
