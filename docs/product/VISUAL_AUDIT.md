@@ -5,7 +5,8 @@
 | Home and onboarding | Repeated image cards gave every action equal weight while leaving ledger data hidden. Guest pages offered protected action links. | Signed-in overview shows date controls, three financial totals, a readable monthly comparison and recent activity. Guests get direct signup and sign-in actions. |
 | Expense list | A populated account rendered all rows and offered no search. | 40-row pages, keyboard-accessible table scrolling, search, visible counts and empty results. |
 | Income and goal lists | Basic Bootstrap tables provide limited context and progress information. | Shared shell and focus styles apply. Dedicated list and goals redesign remains open. |
-| Creation forms, login, register and profile | Controls function, while older pages retain inline styling, background imagery and mixed hierarchy. | Shared shell, navigation and feedback remain active. Field-level redesign remains open. |
+| Sign-in and registration | Purple backdrop, translucent card, and forced page height diverged from the dashboard, particularly when a notice was present. | Shared auth template with dashboard surfaces, consistent fields, browser autocomplete, and responsive spacing. |
+| Creation forms and profile | Older pages retain inline styling and mixed hierarchy. | Shared shell, navigation and feedback remain active. Field-level redesign remains open. |
 | Forecast | Raw model output displayed several decimal places. | Two-decimal display. Forecast chart and underlying model retained. |
 | Anomalies, clusters and spending reference | Tables and lists show results, with limited explanation and inconsistent density. | Shared shell applies. Analytics-specific redesign and model validation remain open. |
 

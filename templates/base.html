@@ -90,7 +90,7 @@
         </div>
     </nav>
 
-    <main class="app-main" id="main-content" tabindex="-1">
+    <main class="app-main{% block main_class %}{% endblock %}" id="main-content" tabindex="-1">
         {% for category, message in get_flashed_messages(with_categories=true) %}
         <div class="alert alert-{{ category }}" role="status">{{ message }}</div>
         {% endfor %}
