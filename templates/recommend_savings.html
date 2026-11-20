@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Recommended Savings Plan{% endblock %}
+{% block title %}Spending Reference{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
@@ -8,14 +8,14 @@
         <div class="col-md-8">
             <div class="card shadow-sm">
                 <div class="card-body">
-                    <h2 class="text-center mb-4">Recommended Savings Plan</h2>
-                    {% if recommended_amount %}
-                        <div class="alert alert-success text-center" role="alert">
-                            Based on your spending patterns, we recommend saving: <strong>${{ recommended_amount }}</strong>
+                    <h2 class="text-center mb-4">Spending Reference</h2>
+                    {% if latest is not none %}
+                        <div class="alert alert-info text-center" role="alert">
+                            Most recent recorded expense: <strong>${{ "%.2f"|format(latest[1]) }}</strong> on {{ latest[0] }}.
                         </div>
                     {% else %}
                         <div class="alert alert-warning text-center" role="alert">
-                            Not enough data to make a recommendation.
+                            Record an expense to see it here.
                         </div>
                     {% endif %}
                 </div>

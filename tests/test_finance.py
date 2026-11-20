@@ -264,6 +264,24 @@ class FinanceTest(unittest.TestCase):
         self.assertEqual(monthly_expenses(user_id)["amount"].tolist(), [1.35])
         self.assertEqual(self.client.get("/expense_clusters").status_code, 200)
 
+    def test_spending_reference_shows_latest_expense_including_zero(self):
+        from models import create_expense, get_user_by_username
+
+        self.sign_in(self.client, "first-account")
+        other = self.app.test_client()
+        self.sign_in(other, "second-account")
+        first = get_user_by_username("first-account")[0]
+        second = get_user_by_username("second-account")[0]
+        self.assertIn(b"Record an expense", self.client.get("/recommend_savings").data)
+        create_expense(first, "Fixture", "4.20", "2026-01-02", "")
+        create_expense(first, "Fixture", "0", "2026-01-02", "")
+        create_expense(first, "Fixture", "30", "2026-01-01", "")
+        create_expense(second, "Fixture", "78.15", "2026-01-03", "")
+        page = self.client.get("/recommend_savings")
+        self.assertIn(b"$0.00", page.data)
+        self.assertIn(b"2026-01-02", page.data)
+        self.assertNotIn(b"78.15", page.data)
+
     def test_analytics_reports_invalid_legacy_rows_without_changing_them(self):
         self.sign_in(self.client, "test-account")
         with self.client.session_transaction() as session:

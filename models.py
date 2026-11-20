@@ -63,6 +63,11 @@ def init_db():
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
         """)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS expenses_user_date_idx ON expenses (user_id, date)"
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS income_user_idx ON income (user_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS goals_user_idx ON goals (user_id)")
     ensure_column("users", "profile_image")
     ensure_column("expenses", "description")
 
@@ -216,3 +221,11 @@ def get_expenses_by_user_id(user_id):
     expenses = [{"date": row[0], "amount": row[1]} for row in cursor.fetchall()]
     conn.close()
     return expenses
+
+
+def get_latest_expense(user_id):
+    with closing(create_connection()) as conn:
+        return conn.execute(
+            "SELECT date, amount FROM expenses WHERE user_id = ? ORDER BY date DESC, id DESC LIMIT 1",
+            (user_id,),
+        ).fetchone()

@@ -6,7 +6,6 @@ from sklearn.cluster import DBSCAN, AgglomerativeClustering, KMeans
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.ensemble import IsolationForest
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import MinMaxScaler
 from textblob import TextBlob
 
@@ -108,26 +107,6 @@ def detect_anomalies(user_id):
     anomalies = data[data["anomaly"] == -1].drop(columns=["anomaly"])
 
     return anomalies
-
-
-def recommend_savings_plan(user_id):
-    data = fetch_expense_data(user_id)
-    if data.empty:
-        return None
-
-    if data.shape[0] < 2:
-        return None
-
-    data["amount"] = pd.to_numeric(data["amount"], errors="coerce")
-    if not np.isfinite(data["amount"]).all():
-        raise InvalidExpenseHistory
-    model = NearestNeighbors(n_neighbors=1)
-    model.fit(data[["amount"]])
-
-    recommendation = model.kneighbors(data[["amount"]].tail(1), return_distance=False)
-    recommended_amount = data.iloc[recommendation[0][0]]["amount"]
-
-    return recommended_amount
 
 
 def train_autoencoder(user_id):

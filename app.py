@@ -29,7 +29,6 @@ from ml_model import (
     detect_anomalies_autoencoder,
     monthly_expenses,
     predict_next_month_lstm,
-    recommend_savings_plan,
     train_autoencoder,
     train_lstm_model,
 )
@@ -41,6 +40,7 @@ from models import (
     get_expenses_fortbl_by_user_id,
     get_goals_by_user_id,
     get_income_by_user_id,
+    get_latest_expense,
     get_user_by_id,
     get_user_by_username,
     init_db,
@@ -437,11 +437,16 @@ def recommend_savings():
         return redirect(url_for("login"))
 
     user_id = session["user_id"]
-    recommended_amount = recommend_savings_plan(user_id)
-
-    return render_template(
-        "recommend_savings.html", recommended_amount=recommended_amount
-    )
+    latest = get_latest_expense(user_id)
+    if latest is not None:
+        entered_date, amount = latest
+        try:
+            transaction_date(entered_date)
+        except ValueError as error:
+            raise InvalidExpenseHistory from error
+        if not isinstance(amount, (int, float)) or not isfinite(amount):
+            raise InvalidExpenseHistory
+    return render_template("recommend_savings.html", latest=latest)
 
 
 @app.route("/expenses/clusters")
