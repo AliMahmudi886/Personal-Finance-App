@@ -154,3 +154,18 @@ The input had 651,237 debits from 4,500 accounts. The overall window used 42,098
 | Latest 12 eligible targets per account | 3,954 | 42,098 | 149 | 9,879.66 | 9,894.34 | 11,371.30 |
 
 On the primary cohort the current model's MAE was 136.51 CZK higher than the previous model and 292.98 CZK higher than the baseline. The corresponding paired 95% bootstrap intervals were [−14.77, 369.70] and [−235.80, 822.74] CZK. Both include zero. This external test did not reproduce the synthetic improvement. The cohort and aggregate rows overlap. The forecasting engine was not tuned on these data or modified in this evaluation.
+
+### Account-separated tuning experiment
+
+Berka accounts were partitioned deterministically using the first byte of SHA-256 of their pseudonymous account key with a fixed tag. The split assigned 2,757 accounts to development and 1,743 to testing before eligibility filters. No account was used in both groups for this experiment. This is an account-disjoint follow-up within Berka. The earlier aggregate external report had included the complete dataset, so the test partition is not a new external dataset.
+
+Development compared several responses for upward shifts with evidence of exactly one earlier reversal. The selected experimental rule uses 60% of the latest increase above the median of the nine preceding months. Development-cohort MAE on the target scenario went from 13,312.49 to 12,281.51 CZK before testing. The rule was frozen for the test accounts. Reproduce with `python real_forecast_benchmark.py PATH_TO_TRANS_ASC --account-split test --experiment tempered-increase`. The reference is the engine at `18a499e` (the same forecasting code as `c1c8950`).
+
+| Test cohort | Accounts | Targets | Previous MAE | Experiment MAE | Baseline MAE |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Sustained increase after one prior spike | 116 | 125 | 14,023.36 | 14,062.07 | 14,293.88 |
+| Other sustained increases | 251 | 328 | 11,741.08 | 11,723.46 | 10,400.44 |
+| Isolated spike with return to normal | 769 | 1,325 | 12,412.86 | 12,342.97 | 20,628.76 |
+| Overall, latest 12 eligible targets per account | 1,533 | 16,234 | 9,602.90 | 9,588.93 | 11,128.21 |
+
+For the target cohort, experiment minus previous had a paired 95% bootstrap interval of [−544.65, 568.01] CZK. Experiment minus baseline was [−1,253.84, 625.40] CZK. The experiment did not improve on the previous model in the target cohort. On a separate synthetic suite with seeds 7100–7131 it also worsened the target scenario (123.79 to 189.34) and seasonal scenario (56.72 to 58.82), improving isolated spikes (142.97 to 142.05) and leaving the other five scenarios unchanged. The experiment remains opt-in in the benchmark. The application retains the previous engine.

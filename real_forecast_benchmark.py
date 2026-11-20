@@ -2,6 +2,7 @@
 
 import argparse
 import csv
+import hashlib
 import subprocess
 import sys
 from collections import defaultdict
@@ -11,9 +12,15 @@ from random import Random
 from statistics import median
 from types import ModuleType
 
-from forecast import HORIZON, MIN_HISTORY, select_method
+from forecast import HORIZON, MIN_HISTORY, estimate_level_shift, select_method
 
 REFERENCE_REVISION = "25ede3568ed62f7adf6ecac5dc7876d725a77a5b"
+EXTERNAL_REFERENCE_REVISION = "18a499e1bb08afe2022bbe0bada6d34acb271091"
+
+
+def account_partition(account):
+    fingerprint = hashlib.sha256(f"berka-forecast-v1:{account}".encode()).digest()
+    return "development" if fingerprint[0] < 154 else "test"
 
 
 def read_monthly_debits(path):
@@ -85,7 +92,20 @@ def event_at(values, target):
     return "other sustained increases"
 
 
-def evaluate(monthly, previous_selector):
+def tempered_increase(values):
+    previous_level = median(values[-10:-1])
+    rise = values[-1] - previous_level
+    if (
+        rise > 0
+        and estimate_level_shift(values, require_single_reversal=True) is not None
+    ):
+        return "Tempered increase after an earlier spike", previous_level + Decimal(
+            "0.60"
+        ) * rise
+    return select_method(values)
+
+
+def evaluate(monthly, previous_selector, current_selector=select_method):
     groups = defaultdict(dict)
     for account, months in monthly.items():
         eligible = []
@@ -100,7 +120,7 @@ def evaluate(monthly, previous_selector):
             known = run[: target - HORIZON + 1]
             actual = run[target]
             previous = previous_selector(known)[1]
-            current = select_method(known)[1]
+            current = current_selector(known)[1]
             errors = (
                 abs(previous - actual),
                 abs(current - actual),
@@ -137,15 +157,13 @@ def paired_interval(accounts, comparator, seed=2026):
     return estimates[24], estimates[974]
 
 
-def load_reference():
+def load_reference(revision=REFERENCE_REVISION):
     # Fixed, repository-owned reference, independent of the checked-out implementation.
     root = Path(__file__).resolve().parent
-    code = subprocess.check_output(
-        ["git", "show", f"{REFERENCE_REVISION}:forecast.py"], cwd=root
-    )
+    code = subprocess.check_output(["git", "show", f"{revision}:forecast.py"], cwd=root)
     module = ModuleType("forecast_benchmark_reference")
     sys.modules[module.__name__] = module
-    # The source is the fixed Git object above, never the input data or a CLI value.
+    # The CLI uses only the two fixed Git revisions above.
     exec(compile(code, "reference_forecast.py", "exec"), module.__dict__)  # noqa: S102
     return module.select_method
 
@@ -155,10 +173,32 @@ def main():
     parser.add_argument(
         "transactions", type=Path, help="Path to the PKDD'99 trans.asc file"
     )
+    parser.add_argument("--account-split", choices=("development", "test"))
+    parser.add_argument(
+        "--experiment",
+        choices=("tempered-increase",),
+        help="Evaluate an experimental rule outside the application.",
+    )
     args = parser.parse_args()
     months, rows = read_monthly_debits(args.transactions)
     print(f"{rows:,} debits; {len(months):,} accounts with debit records", flush=True)
-    for label, entries in sorted(evaluate(months, load_reference()).items()):
+    revision = REFERENCE_REVISION
+    if args.account_split:
+        months = {
+            account: values
+            for account, values in months.items()
+            if account_partition(account) == args.account_split
+        }
+        revision = EXTERNAL_REFERENCE_REVISION
+        print(
+            f"{args.account_split}: {len(months):,} accounts before eligibility filtering",
+            flush=True,
+        )
+    selector = tempered_increase if args.experiment else select_method
+    if args.experiment:
+        print(f"current column evaluates experiment: {args.experiment}", flush=True)
+    results = evaluate(months, load_reference(revision), selector)
+    for label, entries in sorted(results.items()):
         accounts = list(entries.values())
         targets = sum(row[0] for row in accounts)
         errors = [sum(row[i] for row in accounts) / targets for i in (1, 2, 3)]

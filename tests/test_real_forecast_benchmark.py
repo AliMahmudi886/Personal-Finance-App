@@ -1,10 +1,30 @@
 import unittest
 from decimal import Decimal
 
-from real_forecast_benchmark import contiguous_runs, evaluate, event_at
+from real_forecast_benchmark import (
+    account_partition,
+    contiguous_runs,
+    evaluate,
+    event_at,
+    tempered_increase,
+)
 
 
 class RealForecastBenchmarkTest(unittest.TestCase):
+    def test_account_split_is_stable(self):
+        self.assertEqual(account_partition("1"), "test")
+        self.assertEqual(account_partition("2"), "development")
+
+    def test_experiment_combines_local_level_and_latest_increase(self):
+        from forecast_benchmark import simulated_spending
+
+        values = simulated_spending("shift after spike", seed=3301, vary_shifts=True)[
+            :43
+        ]
+        method, estimate = tempered_increase(values)
+        self.assertEqual(method, "Tempered increase after an earlier spike")
+        self.assertEqual(estimate, Decimal("1409.80"))
+
     def test_event_labels_use_one_completed_earlier_spike_and_future_outcomes(self):
         known = [Decimal(100)] * 14
         known[3] = Decimal(160)
