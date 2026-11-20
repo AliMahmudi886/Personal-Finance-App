@@ -6,7 +6,8 @@
 | Expense list | A populated account rendered all rows and offered no search. | 40-row pages, keyboard-accessible table scrolling, search, visible counts and empty results. |
 | Income and goal lists | Basic Bootstrap tables provide limited context and progress information. | Shared shell and focus styles apply. Dedicated list and goals redesign remains open. |
 | Sign-in and registration | Purple backdrop, translucent card, and forced page height diverged from the dashboard, particularly when a notice was present. | Shared auth template with dashboard surfaces, consistent fields, browser autocomplete, and responsive spacing. |
-| Creation forms and profile | Older pages retain inline styling and mixed hierarchy. | Shared shell, navigation and feedback remain active. Field-level redesign remains open. |
+| Profile | The earlier photo backdrop and forced viewport height diverged from the account screens. | Shared account layout, dashboard styling, and labeled upload and password hints. |
+| Financial creation forms | Older pages retain inline styling and mixed hierarchy. | Shared shell, navigation and feedback remain active. Field-level redesign remains open. |
 | Forecast | Raw model output displayed several decimal places. | Two-decimal display. Forecast chart and underlying model retained. |
 | Anomalies, clusters and spending reference | Tables and lists show results, with limited explanation and inconsistent density. | Shared shell applies. Analytics-specific redesign and model validation remain open. |
 

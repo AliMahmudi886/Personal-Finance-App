@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 {% block title %}{{ heading }}{% endblock %}
-{% block main_class %} auth-main{% endblock %}
+{% block main_class %} account-main{% endblock %}
 {% block content %}
-<section class="surface auth-panel" aria-labelledby="auth-title">
-    <header class="auth-heading">
+<section class="surface account-panel" aria-labelledby="auth-title">
+    <header class="account-heading">
         <h1 id="auth-title">{{ heading }}</h1>
         <p>{{ introduction }}</p>
     </header>
-    <form class="auth-form" method="post" action="{{ url_for(endpoint) }}">
+    <form class="account-form" method="post" action="{{ url_for(endpoint) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="auth-field">
+        <div class="account-field">
             <label for="username">Username</label>
             <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required>
         </div>
-        <div class="auth-field">
+        <div class="account-field">
             <label for="password">Password</label>
             <input id="password" name="password" type="password" autocomplete="{{ password_autocomplete }}" required>
         </div>

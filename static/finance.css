@@ -74,24 +74,24 @@ body > .navbar { background: #132f29; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 
-.app-main.auth-main {
+.app-main.account-main {
     max-width: 510px;
     padding-top: clamp(1.5rem, 5vw, 4rem);
 }
-.auth-panel { padding: clamp(1.25rem, 5vw, 2rem); }
-.auth-heading { margin-bottom: 1.5rem; }
-.auth-heading h1 {
+.account-panel { padding: clamp(1.25rem, 5vw, 2rem); }
+.account-heading { margin-bottom: 1.5rem; }
+.account-heading h1 {
     font-size: clamp(1.85rem, 5vw, 2.5rem);
     font-weight: 740;
     letter-spacing: -.04em;
     margin: 0 0 .4rem;
 }
-.auth-heading p, .auth-alternate { color: var(--muted); margin: 0; }
-.auth-form, .auth-field { display: grid; }
-.auth-form { gap: 1rem; }
-.auth-field { gap: .35rem; }
-.auth-field label { font-weight: 650; margin: 0; }
-.auth-field input {
+.account-heading p, .auth-alternate { color: var(--muted); margin: 0; }
+.account-form, .account-field { display: grid; }
+.account-form { gap: 1rem; }
+.account-field { gap: .35rem; }
+.account-field label { font-weight: 650; margin: 0; }
+.account-field input {
     width: 100%;
     min-width: 0;
     min-height: 48px;
@@ -101,10 +101,26 @@ body > .navbar { background: #132f29; }
     color: var(--ink);
     background: var(--surface);
 }
-.auth-form button { justify-content: center; margin-top: .25rem; }
+.account-form button { justify-content: center; margin-top: .25rem; }
 .auth-alternate {
     border-top: 1px solid var(--line);
     margin-top: 1.5rem;
     padding-top: 1rem;
 }
 .auth-alternate a { color: var(--accent); font-weight: 650; text-decoration: underline; }
+
+.profile-heading { display: flex; align-items: center; gap: 1rem; }
+.account-avatar { flex: 0 0 auto; border-radius: 50%; object-fit: cover; border: 1px solid var(--line); }
+.account-field small { color: var(--muted); }
+.account-field input[type="file"] { padding: .35rem; }
+.account-field input::file-selector-button {
+    min-height: 36px;
+    margin-right: .5rem;
+    padding: .3rem .55rem;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--accent-soft);
+    color: var(--ink);
+    font: inherit;
+    cursor: pointer;
+}
