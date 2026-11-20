@@ -109,14 +109,19 @@ def select_method(values):
             observations.append(abs(estimates[name] - actual))
 
     method = min(errors, key=lambda name: mean(errors[name]))
-    if len(values) >= 12 and method != "Same month last year":
-        previous = values[-12:-3]
-        typical = median(previous)
-        spread = median(abs(value - typical) for value in previous)
-        threshold = max(4 * spread, abs(typical) / 5)
-        changes = [value - typical for value in values[-3:]]
-        if min(changes) > threshold or max(changes) < -threshold:
-            return "Recent level shift", median(values[-3:])
+    if method != "Same month last year":
+        for length in range(6, 1, -1):
+            if len(values) < length + 9:
+                continue
+            previous = values[-length - 9 : -length]
+            typical = median(previous)
+            spread = median(abs(value - typical) for value in previous)
+            threshold = max(4 * spread, abs(typical) / 5)
+            recent = values[-length:]
+            if all(value > typical + threshold for value in recent) or all(
+                value < typical - threshold for value in recent
+            ):
+                return "Recent level shift", median(recent)
     return method, candidates[method]
 
 

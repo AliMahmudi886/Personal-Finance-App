@@ -62,13 +62,16 @@ class ForecastTest(unittest.TestCase):
         self.assertEqual(before.backtest[-1][2], after.backtest[-1][2])
         self.assertNotEqual(before.backtest[-1][1], after.backtest[-1][1])
 
-    def test_regime_change_requires_three_consistent_closed_months(self):
+    def test_regime_change_requires_two_consistent_closed_months(self):
         stable = [Decimal(100)] * 20
         _, spike_estimate = select_method(stable + [Decimal(175)])
-        method, shift_estimate = select_method(stable + [Decimal(175)] * 3)
         self.assertEqual(spike_estimate, 100)
-        self.assertEqual(method, "Recent level shift")
-        self.assertEqual(shift_estimate, 175)
+        for amount in (Decimal(175), Decimal(25)):
+            for months in (2, 6):
+                with self.subTest(amount=amount, months=months):
+                    method, shift_estimate = select_method(stable + [amount] * months)
+                    self.assertEqual(method, "Recent level shift")
+                    self.assertEqual(shift_estimate, amount)
 
     def test_signed_bias_reports_mean_over_or_underestimation(self):
         today = date(2025, 1, 1)

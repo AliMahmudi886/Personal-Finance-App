@@ -27,3 +27,9 @@ Run the reproducible benchmark with `python forecast_benchmark.py`. It uses 32 s
 | Sudden sustained change | 177.68 | 173.41 | 135.86 |
 
 The updated selector adds a 12-month linear regression and can favor the recent level when three consecutive closed months differ substantially from the preceding nine. The larger error after sudden changes warrants caution. This benchmark tests synthetic patterns and cannot establish accuracy for a particular live ledger. The forecast page now flags historical underperformance against the baseline and reports signed bias in the backtest details.
+
+### Sustained change follow-up
+
+The selector now checks for two to six consecutive closed months that all exceed the same upper or lower threshold relative to the preceding nine months. One exceptional month cannot trigger this rule. The earlier seasonal-method guard is retained.
+
+A repeat comparison with seeds 400–431 used the same five scenario definitions and 1,920 forecast targets. Mean absolute error under a sustained increase fell from 180.75 to 161.50. The last-closed-month baseline scored 128.56. The other four scenarios had identical mean absolute errors to the reported hundredth. This remains synthetic validation, including the level-shift scenario, which simulates an increase. Unit tests also verify detection of repeated decreases.
