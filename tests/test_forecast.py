@@ -73,6 +73,18 @@ class ForecastTest(unittest.TestCase):
                     self.assertEqual(method, "Recent level shift")
                     self.assertEqual(shift_estimate, amount)
 
+    def test_close_methods_are_averaged_only_when_the_blend_reduces_past_error(self):
+        from forecast_benchmark import simulated_spending
+
+        values = simulated_spending("stable", seed=5)
+        method, estimate = select_method(values)
+        self.assertEqual(method, "Average of comparable methods")
+        self.assertEqual(estimate.quantize(Decimal("0.01")), Decimal("1176.33"))
+
+        method, estimate = select_method(simulated_spending("stable", seed=1))
+        self.assertEqual(method, "Long recent average")
+        self.assertEqual(estimate.quantize(Decimal("0.01")), Decimal("1205.42"))
+
     def test_signed_bias_reports_mean_over_or_underestimation(self):
         today = date(2025, 1, 1)
         report = build_forecast(history_for([100] * 23 + [200]), today)

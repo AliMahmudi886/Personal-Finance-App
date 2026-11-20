@@ -1,5 +1,6 @@
 """Run deterministic forecast stress checks without a database or account data."""
 
+from argparse import ArgumentParser
 from datetime import date
 from decimal import Decimal
 from random import Random
@@ -63,6 +64,14 @@ def benchmark(first_seed=200):
 
 
 if __name__ == "__main__":
+    parser = ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=200,
+        help="First seed of 32 synthetic series per scenario.",
+    )
+    args = parser.parse_args()
     print(f"{'Scenario':<18} {'Targets':>7} {'Forecast MAE':>13} {'Baseline MAE':>13}")
-    for scenario, targets, error, baseline in benchmark():
+    for scenario, targets, error, baseline in benchmark(args.seed):
         print(f"{scenario:<18} {targets:>7} {error:>13.2f} {baseline:>13.2f}")

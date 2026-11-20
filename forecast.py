@@ -106,9 +106,13 @@ def select_method(values):
         estimates = forecast_candidates(values[:cutoff])
         actual = values[cutoff + HORIZON - 1]
         for name, observations in errors.items():
-            observations.append(abs(estimates[name] - actual))
+            observations.append(estimates[name] - actual)
 
-    method = min(errors, key=lambda name: mean(errors[name]))
+    scores = {
+        name: mean(abs(error) for error in observations)
+        for name, observations in errors.items()
+    }
+    method = min(scores, key=scores.__getitem__)
     if method != "Same month last year":
         for length in range(6, 1, -1):
             if len(values) < length + 9:
@@ -122,6 +126,29 @@ def select_method(values):
                 value < typical - threshold for value in recent
             ):
                 return "Recent level shift", median(recent)
+    if method == "Same month last year" or scores[method] == 0:
+        return method, candidates[method]
+
+    # Average only near-ties. A distinctive seasonal winner keeps its own estimate.
+    ceiling = scores[method] * Decimal("1.04")
+    close_methods = sorted(
+        (
+            name
+            for name in scores
+            if name != "Same month last year" and scores[name] <= ceiling
+        ),
+        key=scores.__getitem__,
+    )[:3]
+    if len(close_methods) > 1:
+        blended_error = mean(
+            abs(mean(residuals))
+            for residuals in zip(*(errors[name] for name in close_methods), strict=True)
+        )
+        if blended_error >= scores[method]:
+            return method, candidates[method]
+        return "Average of comparable methods", mean(
+            candidates[name] for name in close_methods
+        )
     return method, candidates[method]
 
 

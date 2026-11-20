@@ -43,3 +43,22 @@ The forecast page now shows the baseline estimate for the same target month besi
 ### What-if estimates
 
 An optional signed adjustment lets users explore a known expense or refund for the target month. The server validates the amount to cents and rejects a submission for a period that has rolled over. The adjusted amount is shown separately from the model estimate. It does not enter training, backtests, or the ledger, and disappears on a fresh GET.
+
+### Combining comparable estimates
+
+The selector can now average up to three nonseasonal methods within 4% of the leading method’s historical error, provided the combination has lower error over the same earlier validation targets. A seasonal winner, perfect historical score, or detected sustained shift keeps its individual estimate.
+
+Reproduce the synthetic runs with `python forecast_benchmark.py --seed 1100` in this revision and the previous revision `fc3ba81` (call `benchmark(1100)` directly there). The 2,688 targets use 32 series per scenario and 12 targets per series. The seed range 1100–1131 was separate from the experiments used to choose the rule, while the scenario definitions are shared.
+
+| Scenario | Previous MAE | Updated MAE |
+| --- | ---: | ---: |
+| Stable | 48.08 | 48.27 |
+| Upward trend | 53.63 | 52.05 |
+| Seasonal | 56.95 | 56.95 |
+| One-off spikes | 209.71 | 207.85 |
+| Sustained increase | 155.28 | 155.89 |
+| Sustained decrease | 80.30 | 81.51 |
+| Temporary shift | 157.79 | 157.37 |
+| Aggregate | 108.82 | 108.56 |
+
+The synthetic preview account's MAE changed from 2,170.98 to 2,167.87 over 12 targets. These are small descriptive improvements. Accuracy on real accounts remains unverified.
