@@ -23,6 +23,7 @@ class Forecast:
     backtest: list[tuple[str, Decimal, Decimal, Decimal]]
     mean_error: Decimal
     baseline_error: Decimal
+    bias: Decimal
     wape: Decimal | None
     typical_error: Decimal | None
 
@@ -62,9 +63,10 @@ def forecast_candidates(values):
     month_changes = [right - left for left, right in pairwise(recent)]
     drift = median(month_changes)
     candidates = {
+        # Prefer the more stable median when historical errors are identical.
+        "Six-month median": median(recent),
         "Last closed month": values[-1],
         "Three-month average": mean(values[-3:]),
-        "Six-month median": median(recent),
         "Long recent average": mean(values[-12:]),
         "Long recent median": median(values[-12:]),
         "Weighted six-month average": sum(
@@ -74,6 +76,11 @@ def forecast_candidates(values):
         "Linear recent trend": median(values[-3:]) + 3 * drift,
         "Damped recent trend": median(values[-3:]) + 2 * drift,
     }
+    if len(values) >= 12:
+        window = values[-12:]
+        average = mean(window)
+        slope = sum((2 * i - 11) * value for i, value in enumerate(window)) / 286
+        candidates["Twelve-month regression"] = average + Decimal("7.5") * slope
     for alpha in (Decimal("0.2"), Decimal("0.4")):
         level = mean(values[:3])
         for value in values[3:]:
@@ -91,6 +98,7 @@ def select_method(values):
     first = 12 if len(values) >= 12 + HORIZON + MIN_SELECTION_MONTHS - 1 else 6
     if first == 6:
         candidates.pop("Same month last year", None)
+        candidates.pop("Twelve-month regression", None)
     last = len(values) - HORIZON
     origins = range(max(first, last - MAX_TEST_MONTHS + 1), last + 1)
     errors = {name: [] for name in candidates}
@@ -101,6 +109,14 @@ def select_method(values):
             observations.append(abs(estimates[name] - actual))
 
     method = min(errors, key=lambda name: mean(errors[name]))
+    if len(values) >= 12 and method != "Same month last year":
+        previous = values[-12:-3]
+        typical = median(previous)
+        spread = median(abs(value - typical) for value in previous)
+        threshold = max(4 * spread, abs(typical) / 5)
+        changes = [value - typical for value in values[-3:]]
+        if min(changes) > threshold or max(changes) < -threshold:
+            return "Recent level shift", median(values[-3:])
     return method, candidates[method]
 
 
@@ -132,6 +148,7 @@ def build_forecast(history, today):
         backtest=backtest,
         mean_error=mean(errors),
         baseline_error=mean(baseline_errors),
+        bias=mean(estimate - actual for _, actual, estimate, _ in backtest),
         wape=sum(errors) / actual_volume * 100 if actual_volume else None,
         typical_error=typical_error,
     )

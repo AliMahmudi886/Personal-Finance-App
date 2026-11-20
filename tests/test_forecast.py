@@ -8,6 +8,7 @@ from forecast import (
     closed_month_history,
     month_index,
     month_label,
+    select_method,
 )
 
 
@@ -60,6 +61,19 @@ class ForecastTest(unittest.TestCase):
         after = build_forecast(history_for(changed), today)
         self.assertEqual(before.backtest[-1][2], after.backtest[-1][2])
         self.assertNotEqual(before.backtest[-1][1], after.backtest[-1][1])
+
+    def test_regime_change_requires_three_consistent_closed_months(self):
+        stable = [Decimal(100)] * 20
+        _, spike_estimate = select_method(stable + [Decimal(175)])
+        method, shift_estimate = select_method(stable + [Decimal(175)] * 3)
+        self.assertEqual(spike_estimate, 100)
+        self.assertEqual(method, "Recent level shift")
+        self.assertEqual(shift_estimate, 175)
+
+    def test_signed_bias_reports_mean_over_or_underestimation(self):
+        today = date(2025, 1, 1)
+        report = build_forecast(history_for([100] * 23 + [200]), today)
+        self.assertLess(report.bias, 0)
 
     def test_zero_history_has_no_percentage_error_or_small_sample_range(self):
         today = date(2024, 3, 1)

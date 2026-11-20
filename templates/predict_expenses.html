@@ -27,6 +27,9 @@
         <small>Mean absolute error when repeating the last closed month</small>
     </article>
 </section>
+{% if forecast.mean_error > forecast.baseline_error %}
+<p class="surface notice" role="status">The model had higher historical error than repeating the last closed month over these tests.</p>
+{% endif %}
 <section class="surface overview-panel">
     <h2>Recorded expenses and estimate</h2>
     <p class="muted">The month in progress is left blank. Refunds reduce net expenses.</p>
@@ -44,6 +47,7 @@
     </details>
     <details class="cluster-group"><summary>View historical accuracy tests</summary>
         <p>Each test uses only the months that would have been closed when that forecast was made. The selected method can differ between tests.</p>
+        <p>Average signed error: <strong>{{ money(forecast.bias) }}</strong>. Positive values indicate overestimation and negative values indicate underestimation.</p>
         <div class="table-scroll" tabindex="0" role="region" aria-label="Forecast backtest">
             <table class="ledger-table"><thead><tr><th scope="col">Month</th><th scope="col">Actual</th><th scope="col">Forecast</th><th scope="col">Baseline</th></tr></thead>
             <tbody>{% for period, actual, estimate, baseline in forecast.backtest %}
