@@ -1,31 +1,33 @@
 {% extends "base.html" %}
-
-{% block title %}View Expenses{% endblock %}
-
+{% block title %}Expenses{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <h2 class="text-center">Your Expenses</h2>
-<table class="table table-bordered table-striped">
-    <thead>
-        <tr>
-            <th>Category</th>
-            <th>Amount</th>
-            <th>Date</th>
-            <th>Description</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for expense in expenses %}
-        <tr>
-            <td>{{ expense[2] }}</td>
-            <td>{{ expense[3] }}</td>
-            <td>{{ expense[4] }}</td>
-            <td>{{ expense[5] or '' }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-            </div>
-</div>
+<header class="overview-header"><div><h1>Expenses</h1><p>{{ total }} {{ 'record' if total == 1 else 'records' }}</p></div><a class="ds-button primary" href="{{ url_for('add_expense') }}">Add expense</a></header>
+<section class="surface overview-panel" aria-label="Expense records">
+    <form class="expense-search" method="get">
+        <label for="expense-query">Search category or description</label>
+        <div class="actions"><input id="expense-query" type="search" name="q" value="{{ q }}" maxlength="100"><button class="ds-button" type="submit">Search</button>
+        {% if q %}<a class="ds-button" href="{{ url_for('view_expenses') }}">Clear</a>{% endif %}</div>
+    </form>
+    {% if expenses %}
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Expense table">
+        <table class="ledger-table">
+            <thead><tr><th scope="col">Date</th><th scope="col">Category</th><th scope="col">Description</th><th scope="col">Amount</th></tr></thead>
+            <tbody>{% for expense in expenses %}
+                <tr><td>{{ expense[4] }}</td><td>{{ expense[2] }}</td><td>{{ expense[5] or '' }}</td><td>{{ expense[3] }}</td></tr>
+            {% endfor %}</tbody>
+        </table>
+    </div>
+    {% if pages > 1 %}
+    <nav class="pagination-bar" aria-label="Expense pages">
+        <span>Page {{ page }} of {{ pages }}</span>
+        <div class="actions">
+            {% if page > 1 %}<a class="ds-button" href="{{ url_for('view_expenses', q=q, page=page-1) }}" rel="prev">Previous</a>{% endif %}
+            {% if page < pages %}<a class="ds-button" href="{{ url_for('view_expenses', q=q, page=page+1) }}" rel="next">Next</a>{% endif %}
+        </div>
+    </nav>
+    {% endif %}
+    {% else %}
+    <p class="muted">{{ 'No expenses match your search.' if q else 'No expenses recorded yet.' }}</p>
+    {% endif %}
+</section>
 {% endblock %}

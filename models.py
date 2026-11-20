@@ -229,3 +229,25 @@ def get_latest_expense(user_id):
             "SELECT date, amount FROM expenses WHERE user_id = ? ORDER BY date DESC, id DESC LIMIT 1",
             (user_id,),
         ).fetchone()
+
+
+def get_expense_page(user_id, query, page):
+    size = 40
+    where = "WHERE user_id = ?"
+    values = [user_id]
+    if query:
+        where += " AND (instr(lower(category), lower(?)) > 0 OR instr(lower(description), lower(?)) > 0)"
+        values.extend((query, query))
+    with closing(create_connection()) as db:
+        db.execute("BEGIN")
+        total = db.execute(f"SELECT count(*) FROM expenses {where}", values).fetchone()[
+            0
+        ]
+        pages = max(1, (total + size - 1) // size)
+        page = min(page, pages)
+        rows = db.execute(
+            f"""SELECT id, user_id, category, amount, date, description FROM expenses {where}
+                ORDER BY date DESC, id DESC LIMIT ? OFFSET ?""",
+            (*values, size, (page - 1) * size),
+        ).fetchall()
+    return rows, page, pages, total

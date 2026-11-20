@@ -4,9 +4,9 @@ From an environment with `requirements.txt` installed, run the active applicatio
 
 ```powershell
 python -m pip install -r requirements-dev.txt
-ruff check app.py ml_model.py models.py app/init.py tests
-ruff format --check app.py ml_model.py models.py app/init.py tests
-python -m compileall -q app.py ml_model.py models.py app tests
+ruff check app.py ml_model.py models.py overview.py app/init.py tests
+ruff format --check app.py ml_model.py models.py overview.py app/init.py tests
+python -m compileall -q app.py ml_model.py models.py overview.py app tests
 python -m pip check
 $env:FINANCE_TEST_ML = '1'
 $env:TF_NUM_INTRAOP_THREADS = '1'

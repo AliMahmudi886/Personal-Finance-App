@@ -264,6 +264,58 @@ class FinanceTest(unittest.TestCase):
         self.assertEqual(monthly_expenses(user_id)["amount"].tolist(), [1.35])
         self.assertEqual(self.client.get("/expense_clusters").status_code, 200)
 
+    def test_overview_uses_period_and_account_and_applies_refunds(self):
+        from models import create_expense, create_income, get_user_by_username
+
+        self.sign_in(self.client, "overview-owner")
+        other = self.app.test_client()
+        self.sign_in(other, "overview-other")
+        uid = get_user_by_username("overview-owner")[0]
+        outsider = get_user_by_username("overview-other")[0]
+        create_income(uid, "Salary fixture", "10.30", "2026-01-03")
+        create_expense(uid, "Fuel fixture", "3.51", "2026-01-04", "")
+        create_expense(uid, "Fuel refund", "-0.21", "2026-01-04", "")
+        create_expense(uid, "Outside date", "999", "2026-02-01", "")
+        create_expense(outsider, "Other account", "800", "2026-01-04", "")
+        period = "/?period=custom&start=2026-01-01&end=2026-01-31"
+        response = self.client.get(period)
+        self.assertEqual(response.status_code, 200)
+        for value in (b"$10.30", b"$3.30", b"$7.00"):
+            self.assertIn(value, response.data)
+        self.assertNotIn(b"Outside date", response.data)
+        self.assertNotIn(b"Other account", response.data)
+        self.assertEqual(
+            self.client.get(
+                "/?period=custom&start=2026-02-01&end=2026-01-01"
+            ).status_code,
+            400,
+        )
+
+    def test_expense_search_and_page_boundary(self):
+        from models import create_expense, get_user_by_username
+
+        self.sign_in(self.client, "page-owner")
+        other = self.app.test_client()
+        self.sign_in(other, "page-other")
+        uid = get_user_by_username("page-owner")[0]
+        outsider = get_user_by_username("page-other")[0]
+        for number in range(41):
+            create_expense(
+                uid, "Rail", "2.50", "2026-01-01", f"Search fixture {number:02}"
+            )
+        create_expense(outsider, "Rail", "2.50", "2026-01-01", "Search fixture outside")
+        first = self.client.get("/view_expenses?q=search+fixture").data
+        second = self.client.get("/view_expenses?q=search+fixture&page=2").data
+        self.assertIn(b"Page 1 of 2", first)
+        self.assertIn(b"Search fixture 40", first)
+        self.assertNotIn(b"Search fixture 00", first)
+        self.assertIn(b"Search fixture 00", second)
+        self.assertNotIn(b"Search fixture outside", first + second)
+        self.assertIn(
+            b"No expenses match your search",
+            self.client.get("/view_expenses?q=%25").data,
+        )
+
     def test_spending_reference_shows_latest_expense_including_zero(self):
         from models import create_expense, get_user_by_username
 

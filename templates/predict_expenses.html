@@ -12,7 +12,7 @@
                     {% if error %}
                         <div class="alert alert-warning text-center">{{ error }}</div>
                     {% else %}
-                        <h5 class="card-title text-center">Next Month's Predicted Expense: ${{ prediction }}</h5>
+                        <h5 class="card-title text-center">Next Month's Predicted Expense: ${{ "{:,.2f}".format(prediction) }}</h5>
                         <canvas id="expenseChart" class="mt-4"></canvas>
                     {% endif %}
                 </div>

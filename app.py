@@ -37,7 +37,7 @@ from models import (
     create_goal,
     create_income,
     create_user,
-    get_expenses_fortbl_by_user_id,
+    get_expense_page,
     get_goals_by_user_id,
     get_income_by_user_id,
     get_latest_expense,
@@ -46,6 +46,7 @@ from models import (
     init_db,
     update_user_profile,
 )
+from overview import financial_overview
 
 app = Flask(__name__)
 secret_key = os.environ.get("FINANCE_SECRET_KEY", "")
@@ -117,7 +118,40 @@ def load_user():
 
 @app.route("/")
 def home():
-    return render_template("home.html")
+    if not g.user:
+        return render_template("home.html")
+    today = date.today()
+    period = request.args.get("period", "month")
+    if period not in {"month", "quarter", "year", "custom"}:
+        abort(400, description="Choose a valid reporting period.")
+    start, end = today.replace(day=1), today
+    if period == "quarter":
+        year, month = divmod(today.year * 12 + today.month - 3, 12)
+        start = date(year, month + 1, 1)
+    elif period == "year":
+        start = today.replace(month=1, day=1)
+    elif period == "custom":
+        try:
+            start = date.fromisoformat(request.args.get("start", ""))
+            end = date.fromisoformat(request.args.get("end", ""))
+        except ValueError:
+            abort(400, description="Enter both dates in the reporting range.")
+        if not 0 <= (end - start).days <= 730:
+            abort(400, description="Choose a date range up to 731 days.")
+    report = None
+    report_error = False
+    try:
+        report = financial_overview(g.user["id"], start.isoformat(), end.isoformat())
+    except (InvalidOperation, ValueError):
+        report_error = True
+    return render_template(
+        "home.html",
+        report=report,
+        report_error=report_error,
+        period=period,
+        start=start,
+        end=end,
+    )
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -192,8 +226,17 @@ def add_expense():
 def view_expenses():
     if "user_id" not in session:
         return redirect(url_for("login"))
-    expenses = get_expenses_fortbl_by_user_id(session["user_id"])
-    return render_template("view_expenses.html", expenses=expenses)
+    query = request.args.get("q", "").strip()[:100]
+    page = max(request.args.get("page", 1, type=int), 1)
+    expenses, page, pages, total = get_expense_page(g.user["id"], query, page)
+    return render_template(
+        "view_expenses.html",
+        expenses=expenses,
+        q=query,
+        page=page,
+        pages=pages,
+        total=total,
+    )
 
 
 @app.route("/add_goal", methods=["GET", "POST"])
