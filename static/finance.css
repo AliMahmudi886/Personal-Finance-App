@@ -153,3 +153,6 @@ body > .navbar { background: #132f29; }
 .cluster-group { border-top: 1px solid var(--line); padding: .75rem 0; }
 .cluster-group summary { font-weight: 650; cursor: pointer; color: var(--accent); }
 .forecast-summary { padding-top: 0; }
+
+.scenario-panel { margin-bottom: 1rem; }
+.scenario-panel .date-fields { padding-inline: 0; }

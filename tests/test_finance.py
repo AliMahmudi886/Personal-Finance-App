@@ -453,6 +453,36 @@ class FinanceTest(unittest.TestCase):
             page.data,
         )
         self.assertIn(month_label(current + 1).encode(), page.data)
+        target = month_label(current + 1)
+        for adjustment, expected in (("12.50", b"$50.00"), ("-40.00", b"-$2.50")):
+            response = self.submit(
+                self.client,
+                "/predict_expenses",
+                {"adjustment": adjustment, "target": target},
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(b"Adjusted estimate", response.data)
+            self.assertIn(expected, response.data)
+        invalid = self.submit(
+            self.client, "/predict_expenses", {"adjustment": "12.345", "target": target}
+        )
+        self.assertEqual(invalid.status_code, 400)
+        stale = self.submit(
+            self.client,
+            "/predict_expenses",
+            {"adjustment": "10", "target": month_label(current)},
+        )
+        self.assertEqual(stale.status_code, 400)
+        self.assertNotIn(
+            b"Adjusted estimate", self.client.get("/predict_expenses").data
+        )
+        with closing(sqlite3.connect(self.db_path)) as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT COUNT(*) FROM expenses WHERE user_id = ?", (uid,)
+                ).fetchone()[0],
+                MIN_HISTORY + 1,
+            )
         self.assertNotIn(b"9000000", page.data)
         self.assertNotIn(b"1000000", page.data)
 

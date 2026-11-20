@@ -6,6 +6,7 @@
     <div><h1>Expense forecast</h1><p>Estimate net expenses for the next calendar month from completed months of your ledger.</p></div>
     <a class="ds-button" href="{{ url_for('view_expenses') }}">View expenses</a>
 </header>
+{% if scenario_error %}<p class="surface notice" role="alert">{{ scenario_error }}</p>{% endif %}
 {% if forecast is none %}
 <section class="surface overview-panel">
     <h2>More history needed</h2>
@@ -26,6 +27,22 @@
         <h2>Baseline error</h2><p>{{ money(forecast.baseline_error) }}</p>
         <small>Mean absolute error when repeating the last closed month. Its estimate for {{ forecast.target }} is {{ money(forecast.history[-1][1]) }}.</small>
     </article>
+</section>
+<section class="surface overview-panel scenario-panel" aria-labelledby="scenario-title">
+    <h2 id="scenario-title">What-if estimate</h2>
+    <p class="muted">Add a change that isn’t already reflected in the forecast for {{ forecast.target }}. Use a negative amount to reduce expenses. This calculation is temporary.</p>
+    <form method="post" action="{{ url_for('predict_expenses') }}" class="date-fields">
+        <input name="csrf_token" type="hidden" value="{{ csrf_token() }}">
+        <input name="target" type="hidden" value="{{ forecast.target }}">
+        <label for="adjustment">Expense change ($)
+            <input id="adjustment" name="adjustment" type="number" step="0.01" inputmode="decimal" value="{{ adjustment_input }}" required>
+        </label>
+        <button class="ds-button primary" type="submit">Calculate</button>
+        {% if scenario is not none %}<a class="ds-button" href="{{ url_for('predict_expenses') }}">Clear</a>{% endif %}
+    </form>
+    {% if scenario is not none %}
+    <p role="status"><strong>Adjusted estimate for {{ forecast.target }}: {{ money(scenario) }}</strong></p>
+    {% endif %}
 </section>
 {% if forecast.mean_error > forecast.baseline_error %}
 <p class="surface notice" role="status">The model had higher historical error than repeating the last closed month over these tests.</p>

@@ -39,3 +39,7 @@ A repeat comparison with seeds 400–431 used the same five scenario definitions
 The benchmark also covers a persistent decrease and a temporary eight-month increase. In exploratory runs, emphasizing recent errors improved the sustained increase case but worsened stable, trending, and intermittent-spike cases. A longer shift-detection window produced mixed results across sustained increases, decreases, and temporary changes on seeds 700–731. The selection policy therefore retains its previous windows.
 
 The forecast page now shows the baseline estimate for the same target month beside its historical error. It repeats the last closed month's total, so users can compare both current estimates and their past errors at the same horizon.
+
+### What-if estimates
+
+An optional signed adjustment lets users explore a known expense or refund for the target month. The server validates the amount to cents and rejects a submission for a period that has rolled over. The adjusted amount is shown separately from the model estimate. It does not enter training, backtests, or the ledger, and disappears on a fresh GET.

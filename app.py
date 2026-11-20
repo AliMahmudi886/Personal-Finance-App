@@ -485,7 +485,7 @@ def view_income():
     return render_template("view_income.html", income=income)
 
 
-@app.route("/predict_expenses")
+@app.route("/predict_expenses", methods=["GET", "POST"])
 def predict_expenses():
     if not g.user:
         return redirect(url_for("login"))
@@ -494,6 +494,24 @@ def predict_expenses():
         forecast, closed_count = forecast_for_user(g.user["id"], today)
     except ValueError as error:
         raise InvalidExpenseHistory from error
+
+    scenario = None
+    scenario_error = None
+    adjustment_input = ""
+    if request.method == "POST":
+        adjustment_input = request.form.get("adjustment", "")
+        if forecast is None or request.form.get("target") != forecast.target:
+            scenario_error = "The forecast period changed or is unavailable. Review the current forecast."
+        else:
+            try:
+                adjustment = Decimal(checked_amount(adjustment_input))
+                if adjustment != adjustment.quantize(Decimal("0.01")):
+                    raise ValueError
+                scenario = forecast.amount + adjustment
+            except (InvalidOperation, ValueError):
+                scenario_error = (
+                    "Enter an adjustment with no more than two decimal places."
+                )
 
     chart = None
     if forecast is not None:
@@ -510,7 +528,10 @@ def predict_expenses():
         chart=chart,
         closed_count=closed_count,
         minimum=MIN_HISTORY,
-    )
+        scenario=scenario,
+        scenario_error=scenario_error,
+        adjustment_input=adjustment_input,
+    ), 400 if scenario_error else 200
 
 
 @app.route("/view_anomalies")
