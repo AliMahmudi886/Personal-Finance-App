@@ -213,3 +213,18 @@ After observing the frozen selector's lack of coverage, an exploratory variant u
 | Overall | 5,629 | 59 | 103.64 | 103.16 | 107.36 |
 
 The target improvement is exploratory and based on six households. The broadened selector followed the coverage check on this same panel, so the table does not constitute independent confirmation of the variant. On a separate synthetic suite (seeds 8400–8431), the exploratory variant raised target MAE from 130.71 to 138.72 (baseline 139.58), one-off spike MAE from 155.26 to 155.70, and seasonal MAE from 56.93 to 57.27. The other five scenarios were unchanged. Neither selector was enabled in the application.
+
+### Sensitivity to period boundaries and small cohorts
+
+The exploratory selector and event criteria were held fixed. The same Complete Journey records were replayed with 28-, 30-, and 31-day blocks and with a 15-day shift of the 30-day boundary. The cohorts can overlap across runs, so this is a sensitivity check on one panel. Reproduce by adding `--block-days 28`, `--block-days 31`, or `--block-days 30 --day-offset 15` to the Complete Journey reversal-followthrough command.
+
+| Blocks | Main targets | Incumbent MAE | Exploratory MAE | Baseline MAE | Experiment minus incumbent, leave-one-household-out range |
+| --- | ---: | ---: | ---: | ---: | --- |
+| 30 days from day 1 | 6 | 116.18 | 89.88 | 116.18 | [−49.40, +14.51] |
+| 28 days from day 1 | 18 | 129.90 | 150.23 | 123.35 | [+15.71, +23.97] |
+| 31 days from day 1 | 10 | 100.58 | 122.15 | 90.58 | [+17.00, +26.02] |
+| 30 days from day 16 | 11 | 122.56 | 125.14 | 96.21 | [−1.73, +8.04] |
+
+The leave-one-household-out range recomputes the paired MAE difference after omitting one household at a time, keeping the remaining targets weighted equally. It is a sensitivity diagnostic and does not estimate a confidence interval. The original target improvement reverses after omitting one of the six households and does not reproduce under the three alternative boundaries.
+
+In contrast, the isolated-spike cohort improved against the incumbent in all four runs: 209.94 to 194.77, 187.66 to 181.02, 224.07 to 204.81, and 190.54 to 179.40, in the table order. Other sustained increases were unchanged in every run. Overall MAE improved slightly in each run, from 103.64 to 103.16, 99.09 to 98.80, 105.58 to 105.12, and 103.29 to 102.82. These aggregate results do not resolve the failure on the primary cohort. The application still uses the incumbent selector.

@@ -92,7 +92,11 @@ def read_online_retail(path):
     return monthly, rows
 
 
-def read_complete_journey(path):
+def read_complete_journey(path, *, block_days=30, offset=0):
+    if block_days < 1 or not 0 <= offset < block_days:
+        raise ValueError(
+            "Expected a positive block length and an offset within the block"
+        )
     monthly = defaultdict(lambda: defaultdict(Decimal))
     rows = 0
     final_day = 0
@@ -119,13 +123,16 @@ def read_complete_journey(path):
                 day = int(ordinal_day)
                 if day < 1:
                     raise ValueError("Expected positive source day index")
-                monthly[household][(day - 1) // 30] += Decimal(sales)
+                if day > offset:
+                    monthly[household][(day - offset - 1) // block_days] += Decimal(
+                        sales
+                    )
                 final_day = max(final_day, day)
                 rows += 1
     for months in monthly.values():
-        # Ordinal dates have no calendar anchor. Drop partial 30-day periods.
+        # Ordinal dates have no calendar anchor. Drop partial periods.
         months.pop(min(months), None)
-        months.pop(final_day // 30, None)
+        months.pop((final_day - offset) // block_days, None)
     return monthly, rows
 
 
@@ -299,6 +306,18 @@ def paired_interval(accounts, comparator, seed=2026):
     return estimates[24], estimates[974]
 
 
+def leave_one_account_out(accounts, comparator):
+    if len(accounts) < 2:
+        return None
+    total_count = sum(row[0] for row in accounts)
+    total_delta = sum(row[2] - row[comparator] for row in accounts)
+    differences = [
+        (total_delta - (row[2] - row[comparator])) / (total_count - row[0])
+        for row in accounts
+    ]
+    return min(differences), max(differences)
+
+
 def load_reference(revision=REFERENCE_REVISION):
     # Fixed, repository-owned reference, independent of the checked-out implementation.
     root = Path(__file__).resolve().parent
@@ -328,7 +347,23 @@ def main():
         choices=("tempered-increase", "analog-followthrough", "reversal-followthrough"),
         help="Evaluate an experimental rule outside the application.",
     )
+    parser.add_argument(
+        "--block-days", type=int, default=30, help="Complete Journey block length."
+    )
+    parser.add_argument(
+        "--day-offset",
+        type=int,
+        default=0,
+        help="Days to skip before the first Complete Journey block.",
+    )
     args = parser.parse_args()
+    if args.dataset != "complete-journey" and (args.block_days, args.day_offset) != (
+        30,
+        0,
+    ):
+        parser.error("Block options apply only to Complete Journey")
+    if args.block_days < 1 or not 0 <= args.day_offset < args.block_days:
+        parser.error("Expected a positive block length and an offset within the block")
     if args.account_split and args.dataset != "berka":
         parser.error("--account-split applies only to Berka")
     if args.dataset == "online-retail-ii":
@@ -339,10 +374,13 @@ def main():
             flush=True,
         )
     elif args.dataset == "complete-journey":
-        months, rows = read_complete_journey(args.transactions)
+        months, rows = read_complete_journey(
+            args.transactions, block_days=args.block_days, offset=args.day_offset
+        )
         unit = "sales units"
         print(
-            f"{rows:,} purchase lines; {len(months):,} household histories", flush=True
+            f"{rows:,} purchase lines; {len(months):,} household histories; {args.block_days}-day blocks, offset {args.day_offset}",
+            flush=True,
         )
     else:
         months, rows = read_monthly_debits(args.transactions)
@@ -372,6 +410,9 @@ def main():
         print(f"current column evaluates experiment: {args.experiment}", flush=True)
     reference = select_method if args.dataset != "berka" else load_reference(revision)
     results = evaluate(months, reference, selector)
+    primary = "sustained increase after one prior spike"
+    if primary not in results:
+        print(f"{primary}: no eligible targets")
     for label, entries in sorted(results.items()):
         accounts = list(entries.values())
         targets = sum(row[0] for row in accounts)
@@ -388,6 +429,12 @@ def main():
                 print(
                     f"  current minus {name}, paired 95% interval: [{interval[0]:.2f}, {interval[1]:.2f}] {unit}"
                 )
+            if label == primary:
+                sensitivity = leave_one_account_out(accounts, comparator)
+                if sensitivity is not None:
+                    print(
+                        f"  current minus {name}, leave-one-account-out range: [{sensitivity[0]:.2f}, {sensitivity[1]:.2f}] {unit}"
+                    )
 
 
 if __name__ == "__main__":

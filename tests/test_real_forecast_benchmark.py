@@ -10,6 +10,7 @@ from real_forecast_benchmark import (
     contiguous_runs,
     evaluate,
     event_at,
+    leave_one_account_out,
     read_complete_journey,
     reversal_followthrough,
     tempered_increase,
@@ -61,8 +62,22 @@ class RealForecastBenchmarkTest(unittest.TestCase):
                     "fixture,60,1.25\nfixture,90,3.00\nfixture,91,100\n",
                 )
             monthly, rows = read_complete_journey(path)
+            shifted, _ = read_complete_journey(path, offset=15)
         self.assertEqual(rows, 5)
         self.assertEqual(monthly["fixture"], {1: Decimal("11.45"), 2: Decimal(3)})
+        self.assertEqual(shifted["fixture"], {1: Decimal("1.25")})
+
+    def test_leave_one_out_keeps_remaining_target_weights(self):
+        accounts = [
+            (1, Decimal(3), Decimal(5)),
+            (2, Decimal(8), Decimal(4)),
+            (1, Decimal(2), Decimal(2)),
+        ]
+        self.assertEqual(
+            leave_one_account_out(accounts, 1),
+            (Decimal(-4) / 3, Decimal(1)),
+        )
+        self.assertIsNone(leave_one_account_out(accounts[:1], 1))
 
     def test_event_labels_use_one_completed_earlier_spike_and_future_outcomes(self):
         known = [Decimal(100)] * 14
