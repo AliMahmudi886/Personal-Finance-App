@@ -1,0 +1,16 @@
+{% extends "entry_form.html" %}
+{% from "finance_macros.html" import field with context %}
+{% set heading = "Edit reminder" if editing else "Add reminder" %}
+{% set description = "Set a due date for a recurring expense." %}
+{% set submit_label = "Save reminder" %}
+{% set cancel_endpoint = "recurring_expenses" %}
+{% block fields %}
+    {{ field('category', 'Reminder name', value=record[0], maxlength=100) }}
+    {{ field('amount', 'Expected amount', 'number', record[1], min=0.01) }}
+    <div class="account-field"><label for="frequency">Frequency</label>
+        <select id="frequency" name="frequency" required>
+            {% for option in frequencies %}<option value="{{ option }}" {% if request.form.get('frequency',record[2]) == option %}selected{% endif %}>{{ option|capitalize }}</option>{% endfor %}
+        </select>
+    </div>
+    {{ field('next_due_date', 'Next due date', 'date', record[3]) }}
+{% endblock %}

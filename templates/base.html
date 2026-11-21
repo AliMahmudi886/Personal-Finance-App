@@ -49,8 +49,10 @@
             background-color: #495057; /* Slightly lighter hover background */
         }
     </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='finance.css') }}">
 </head>
 <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
         <a class="navbar-brand" href="/">Personal Finance</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -61,14 +63,19 @@
                 {% if g.user %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <img src="{{ url_for('static', filename='profile_images/' ~ g.user.profile_image) }}" class="profile-pic" alt="Profile Picture">
+                            {% if g.user.profile_image %}
+                            <img src="{{ url_for('profile_image') }}" class="profile-pic" alt="">
+                            {% endif %}
                             {{ g.user.username }}
                         </a>
                         <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
                             <a class="dropdown-item" href="/profile">Profile</a>
                             <a class="dropdown-item" href="{{ url_for('home') }}">Home</a>
                             <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="/logout">Logout</a>
+                            <form method="POST" action="{{ url_for('logout') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="dropdown-item" type="submit">Logout</button>
+                            </form>
                         </div>
                     </li>
                 {% else %}
@@ -83,9 +90,12 @@
         </div>
     </nav>
 
-    <div class="container mt-5 pt-5">
+    <main class="app-main{% block main_class %}{% endblock %}" id="main-content" tabindex="-1">
+        {% for category, message in get_flashed_messages(with_categories=true) %}
+        <div class="alert alert-{{ category }}" role="status">{{ message }}</div>
+        {% endfor %}
         {% block content %}{% endblock %}
-    </div>
+    </main>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>

@@ -1,0 +1,230 @@
+# Expense forecast
+
+The forecast estimates recorded net expenses for the next calendar month. The latest month available to the model is the preceding closed calendar month, so the prediction horizon is two monthly steps. The open month and future entries are excluded. A missing month breaks the sequence. A month with an explicit zero-value expense is valid, and refunds reduce net expenses.
+
+Candidates include the last closed month, recent means and medians, weighted and exponentially smoothed levels, recent trends, and same-month-last-year when enough comparable observations exist. The candidate with the lowest mean absolute error across comparable past targets is selected. The backtest replays the selection procedure at each cutoff and excludes both the target month and its immediately preceding month. The most recent 12 usable targets are compared with the last-closed-month baseline. At least 14 contiguous closed months are required, giving at least three outer tests.
+
+The page shows absolute error in currency units and as a percentage of total absolute spending across the test window. That percentage is undefined when total absolute spending is zero. With at least eight observations the page also shows the empirical 80th percentile of historical absolute error. This is a historical reference rather than a calibrated prediction interval.
+
+## Development benchmark
+
+The synthetic preview account had 29 consecutive completed months. Across the same 12 historical targets in November 2025 through October 2026, mean absolute error was $2,934.89 for repeating the last closed month, $2,392.23 for the previous LSTM architecture with two recursive steps and a fixed seed of 42, and $2,356.70 for the final selection procedure. The preview history informed candidate development. The results are exploratory and performance on real accounts remains unverified.
+
+The engine forecasts the recorded ledger series. Unrecorded transactions, changes in expense patterns, and exceptional future spending affect accuracy. Scheduled reminders remain separate from recorded expenses.
+
+[Time-series cross-validation and simple forecasting methods](https://otexts.com/fpp3/toolbox.html)
+
+## Stress checks
+
+Run the reproducible benchmark with `python forecast_benchmark.py`. It uses 32 synthetic series per scenario and 12 historical targets per series. No account data is read. Seeds 100–131 were used for development, and seeds 200–231 were used for this comparison. The two seed sets use the same scenario definitions.
+
+| Scenario | Previous MAE | Updated MAE | Last-closed-month baseline MAE |
+| --- | ---: | ---: | ---: |
+| Stable with noise | 49.80 | 50.61 | 60.57 |
+| Upward trend | 78.86 | 54.68 | 70.16 |
+| Seasonal | 62.75 | 62.75 | 211.85 |
+| One-off spikes | 215.70 | 215.70 | 357.75 |
+| Sudden sustained change | 177.68 | 173.41 | 135.86 |
+
+The updated selector adds a 12-month linear regression and can favor the recent level when three consecutive closed months differ substantially from the preceding nine. The larger error after sudden changes warrants caution. This benchmark tests synthetic patterns and cannot establish accuracy for a particular live ledger. The forecast page now flags historical underperformance against the baseline and reports signed bias in the backtest details.
+
+### Sustained change follow-up
+
+The selector now checks for two to six consecutive closed months that all exceed the same upper or lower threshold relative to the preceding nine months. One exceptional month cannot trigger this rule. The earlier seasonal-method guard is retained.
+
+A repeat comparison with seeds 400–431 used the same five scenario definitions and 1,920 forecast targets. Mean absolute error under a sustained increase fell from 180.75 to 161.50. The last-closed-month baseline scored 128.56. The other four scenarios had identical mean absolute errors to the reported hundredth. This remains synthetic validation, including the level-shift scenario, which simulates an increase. Unit tests also verify detection of repeated decreases.
+
+### Comparing the baseline estimate
+
+The benchmark also covers a persistent decrease and a temporary eight-month increase. In exploratory runs, emphasizing recent errors improved the sustained increase case but worsened stable, trending, and intermittent-spike cases. A longer shift-detection window produced mixed results across sustained increases, decreases, and temporary changes on seeds 700–731. The selection policy therefore retains its previous windows.
+
+The forecast page now shows the baseline estimate for the same target month beside its historical error. It repeats the last closed month's total, so users can compare both current estimates and their past errors at the same horizon.
+
+### What-if estimates
+
+An optional signed adjustment lets users explore a known expense or refund for the target month. The server validates the amount to cents and rejects a submission for a period that has rolled over. The adjusted amount is shown separately from the model estimate. It does not enter training, backtests, or the ledger, and disappears on a fresh GET.
+
+### Combining comparable estimates
+
+The selector can now average up to three nonseasonal methods within 4% of the leading method’s historical error, provided the combination has lower error over the same earlier validation targets. A seasonal winner, perfect historical score, or detected sustained shift keeps its individual estimate.
+
+Reproduce the synthetic runs with `python forecast_benchmark.py --seed 1100` in this revision and the previous revision `fc3ba81` (call `benchmark(1100)` directly there). The 2,688 targets use 32 series per scenario and 12 targets per series. The seed range 1100–1131 was separate from the experiments used to choose the rule, while the scenario definitions are shared.
+
+| Scenario | Previous MAE | Updated MAE |
+| --- | ---: | ---: |
+| Stable | 48.08 | 48.27 |
+| Upward trend | 53.63 | 52.05 |
+| Seasonal | 56.95 | 56.95 |
+| One-off spikes | 209.71 | 207.85 |
+| Sustained increase | 155.28 | 155.89 |
+| Sustained decrease | 80.30 | 81.51 |
+| Temporary shift | 157.79 | 157.37 |
+| Aggregate | 108.82 | 108.56 |
+
+The synthetic preview account's MAE changed from 2,170.98 to 2,167.87 over 12 targets. These are small descriptive improvements. Accuracy on real accounts remains unverified.
+
+### Earlier response to a possible spending shift
+
+After one moderate break from the previous level, the forecast moves 40% of the way from the selected method toward that observation. The break must exceed the existing threshold and stay within 60% of the preceding median. Larger single observations require corroboration. A confirmed run now remains eligible for up to 12 months. The seasonal-method guard remains active.
+
+Compare this revision with `d32ff34` using the updated benchmark sampler and `python forecast_benchmark.py --seed 1500 --vary-shifts`. The earlier model uses the same new sampler. These 2,688 synthetic targets use fresh seeds 1500–1531, with varied shift onsets, shift sizes and spike sizes. The thresholds were chosen on earlier fixed-shape synthetic scenarios.
+
+| Scenario | Previous MAE | Updated MAE | Last-closed-month baseline MAE |
+| --- | ---: | ---: | ---: |
+| Stable | 48.93 | 48.93 | 57.52 |
+| Upward trend | 54.22 | 54.22 | 71.62 |
+| Seasonal | 52.85 | 52.85 | 215.38 |
+| One-off spikes | 148.18 | 158.05 | 210.01 |
+| Sustained increase | 170.28 | 160.04 | 129.08 |
+| Sustained decrease | 166.74 | 157.99 | 127.11 |
+| Temporary shift | 232.34 | 222.44 | 189.99 |
+| Aggregate | 124.79 | 122.08 | |
+
+The new strategy trades higher error on one-off spikes for a quicker response to changes. The last-closed-month baseline still beats both model versions on the three shift scenarios. Real-account performance remains unverified.
+
+### Repeated one-month spikes
+
+A first moderate change no longer triggers the early adjustment when the preceding 36 closed months contain at least two same-direction excursions that immediately returned near the old spending level. A confirmed consecutive shift still takes precedence. Requiring two reversals avoids suppressing a sustained change solely because one earlier spike occurred.
+
+On 3,072 synthetic targets using fresh seeds 2700–2731, both revisions and the last-closed-month baseline used identical targets. Reproduce the current runs with `python forecast_benchmark.py --seed 2700 --vary-shifts --include-mixed`. The previous results use the same updated sampler with model code from `5c7aaf3`.
+
+| Scenario | Previous MAE | Updated MAE | Baseline MAE |
+| --- | ---: | ---: | ---: |
+| One-off spikes | 162.17 | 155.09 | 219.71 |
+| Sustained increase | 148.56 | 148.56 | 122.56 |
+| Sustained decrease | 149.09 | 149.09 | 121.47 |
+| Temporary shift | 197.02 | 197.02 | 167.61 |
+| Sustained increase after a spike | 172.43 | 172.43 | 122.56 |
+| Aggregate across eight scenarios | 124.20 | 123.32 | 137.61 |
+
+Stable, trending, and seasonal cases were also unchanged. Results reflect synthetic data and provide no measurement of accuracy on real accounts.
+
+### Faster response with repeated-spike protection
+
+With no repeated isolated spikes in the same direction, a sufficiently large break can use the latest closed month's level immediately. A sustained run uses its median. After two historical reversals in the same direction, the selector keeps the more conservative threshold and requires three consecutive closed months. A seasonal model whose validation MAE is more than 15% lower than the best nonseasonal alternative stays protected.
+
+The table compares this revision, `eb1a351` and the last-closed-month baseline across identical synthetic targets. Seeds 3300–3331 were used for development and seeds 4100–4131 were reserved for the final comparison, with 384 targets per scenario. Reproduce the updated run with `python forecast_benchmark.py --seed 4100 --vary-shifts --include-mixed`.
+
+| Scenario | Previous MAE | Updated MAE | Baseline MAE |
+| --- | ---: | ---: | ---: |
+| One-off spikes | 154.04 | 151.61 | 212.51 |
+| Sustained increase | 146.99 | 117.65 | 125.91 |
+| Sustained decrease | 152.93 | 117.27 | 125.51 |
+| Temporary shift | 205.90 | 176.82 | 182.04 |
+| Sustained increase after a spike | 169.07 | 131.70 | 125.91 |
+| Aggregate across eight scenarios | 122.70 | 105.97 | 139.19 |
+
+Stable, trending, and seasonal cases were unchanged. The mixed case improved relative to the previous model but remained worse than the baseline. The results measure performance under this synthetic sampler. Real-account accuracy remains unverified.
+
+### A sustained increase following an isolated spike
+
+The usual seasonal protection remains active. For a moderately better seasonal score, the selector can now accept an otherwise eligible level shift when it finds exactly one same-direction historical reversal and the preceding nine-month window has a median absolute deviation no greater than 8% of its center. Strong seasonal winners remain protected.
+
+Final evaluation used seeds 6100–6131, disjoint from development runs, across 3,072 targets and eight scenarios. In the mixed scenario, the precursor's timing and amount were sampled independently from the permanent increase. Run `python forecast_benchmark.py --seed 6100 --vary-shifts --include-mixed --vary-precursor`. The previous column uses model code from `25ede35` with the same updated sampler.
+
+| Scenario | Previous MAE | Updated MAE | Baseline MAE |
+| --- | ---: | ---: | ---: |
+| Sustained increase after a spike | 114.64 | 113.55 | 121.19 |
+| One-off spikes | 147.37 | 147.37 | 212.33 |
+| Sustained increase | 112.55 | 112.55 | 116.94 |
+| Sustained decrease | 111.48 | 111.48 | 118.97 |
+| Aggregate across eight scenarios | 101.12 | 100.98 | 134.72 |
+
+Stable, trending, seasonal, and temporary-shift results were exactly unchanged on this sample. The effect is small compared with the previous model, which also beat the baseline on this particular mixed sample. Real-account performance remains unverified.
+
+## External validation on anonymized bank debits
+
+The PKDD’99 Financial (Berka) transaction table covers 1993–1998. This benchmark reads only `trans.asc`. The [CTU dataset catalog](https://relational.fel.cvut.cz/dataset/Financial) identifies the challenge source. The [original field descriptions, mirrored as a PDF](https://raw.githubusercontent.com/ldaniel/Predictive-Analytics/master/enunciation/PKDD%2799%C2%A0Discovery%C2%A0Challenge.pdf) document transaction directions. The transaction table used was [the pinned public mirror](https://raw.githubusercontent.com/jlacko/berka-dataset/77e9972a1ead107e5f42a91dd989d587bff055a4/trans.asc), SHA-256 `75ab2f39df9d79d79c5c900de90ddd28248b689f214598ac9fa2ff0f574a70d2`. No rows or account identifiers are included in this repository or in benchmark output.
+
+Sum debit types `VYDAJ` and `VYBER` per account and month, in Czech koruna. Exclude the first observed transaction month of each account because it could be partial, and split at gaps in debit history. Use at least 14 contiguous known months and the application's two-month horizon. Repeating the last known total is the baseline. The reference model revision is `25ede35`.
+
+The overall cohort uses up to the latest 12 eligible targets per account. Event cohorts use all qualifying targets. A first high month must exceed the preceding nine-month median by more than either 25% of that median or four median absolute deviations, whichever is larger. The immediately preceding month must be within half the threshold. In the main cohort, the next two observed months remain above the threshold and exactly one earlier high month reverted to normal, as identified by both neighboring months in the preceding 36 months. Outcomes label the event cohorts only. Each model sees data through the cutoff, before the two subsequent outcomes. The paired percentile bootstrap resamples accounts, preserving dependence among multiple targets from the same account.
+
+Run `python real_forecast_benchmark.py PATH_TO_TRANS_ASC` from a checkout that contains the reference Git object. Debit totals are a proxy for expenses and include withdrawals, transfers, fees and other debits. Credits, including potential refunds, are excluded. This is one historical bank dataset, so the results describe this benchmark population.
+
+### External results
+
+The input had 651,237 debits from 4,500 accounts. The overall window used 42,098 targets from 3,954 eligible accounts. Errors below are MAE in CZK.
+
+| Cohort | Accounts | Targets | Changed estimates | Previous MAE | Current MAE | Baseline MAE |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Sustained increase after one prior spike | 293 | 324 | 15 | 13,450.23 | 13,586.74 | 13,293.76 |
+| Other sustained increases | 682 | 874 | 7 | 11,142.78 | 11,153.11 | 10,115.78 |
+| Isolated spike with return to normal | 1,992 | 3,470 | 30 | 12,508.15 | 12,557.29 | 20,717.05 |
+| Latest 12 eligible targets per account | 3,954 | 42,098 | 149 | 9,879.66 | 9,894.34 | 11,371.30 |
+
+On the primary cohort the current model's MAE was 136.51 CZK higher than the previous model and 292.98 CZK higher than the baseline. The corresponding paired 95% bootstrap intervals were [−14.77, 369.70] and [−235.80, 822.74] CZK. Both include zero. This external test did not reproduce the synthetic improvement. The cohort and aggregate rows overlap. The forecasting engine was not tuned on these data or modified in this evaluation.
+
+### Account-separated tuning experiment
+
+Berka accounts were partitioned deterministically using the first byte of SHA-256 of their pseudonymous account key with a fixed tag. The split assigned 2,757 accounts to development and 1,743 to testing before eligibility filters. No account was used in both groups for this experiment. This is an account-disjoint follow-up within Berka. The earlier aggregate external report had included the complete dataset, so the test partition is not a new external dataset.
+
+Development compared several responses for upward shifts with evidence of exactly one earlier reversal. The selected experimental rule uses 60% of the latest increase above the median of the nine preceding months. Development-cohort MAE on the target scenario went from 13,312.49 to 12,281.51 CZK before testing. The rule was frozen for the test accounts. Reproduce with `python real_forecast_benchmark.py PATH_TO_TRANS_ASC --account-split test --experiment tempered-increase`. The reference is the engine at `18a499e` (the same forecasting code as `c1c8950`).
+
+| Test cohort | Accounts | Targets | Previous MAE | Experiment MAE | Baseline MAE |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Sustained increase after one prior spike | 116 | 125 | 14,023.36 | 14,062.07 | 14,293.88 |
+| Other sustained increases | 251 | 328 | 11,741.08 | 11,723.46 | 10,400.44 |
+| Isolated spike with return to normal | 769 | 1,325 | 12,412.86 | 12,342.97 | 20,628.76 |
+| Overall, latest 12 eligible targets per account | 1,533 | 16,234 | 9,602.90 | 9,588.93 | 11,128.21 |
+
+For the target cohort, experiment minus previous had a paired 95% bootstrap interval of [−544.65, 568.01] CZK. Experiment minus baseline was [−1,253.84, 625.40] CZK. The experiment did not improve on the previous model in the target cohort. On a separate synthetic suite with seeds 7100–7131 it also worsened the target scenario (123.79 to 189.34) and seasonal scenario (56.72 to 58.82), improving isolated spikes (142.97 to 142.05) and leaving the other five scenarios unchanged. The experiment remains opt-in in the benchmark. The application retains the previous engine.
+
+## Independent retail benchmark (UCI Online Retail II)
+
+This follow-up uses Daqing Chen's [Online Retail II](https://doi.org/10.24432/C5CG6D), a public CC BY 4.0 dataset of real purchases from a UK online retailer. The source provides numeric customer keys, and many buyers are wholesalers. The benchmark treats transaction quantities times sterling unit prices as signed net purchases at this one retailer. Rows without customer ID or valid numeric purchase fields are excluded. The first observed month per buyer and the dataset's partial final month are excluded. Gaps in recorded activity split the series. All three methods use identical eligible targets and the same two-month horizon.
+
+The workbook was obtained from a [pinned mirror of the official UCI workbook](https://github.com/DiogoRibeiro7/data/tree/8023c7f3b3ef5ebc1c4d46983fc407a944a231b3/datasets/online-retail-ii). Its SHA-256 matched the mirror's recorded UCI snapshot: `bcbe73b35f5b7babf197fb0cb983a11f5d9ff929078d4aa53d171b1f2df2e980`. The direct UCI ZIP transfer timed out. The workbook and customer records are excluded from this repository.
+
+The frozen experimental selector uses up to three similar historical upward changes from the same buyer's known history. It estimates how much of each increase persisted two periods later, limits historical persistence to the range from 0% to 100%, and blends that estimate with the incumbent forecast at a weight of one third. It is evaluated only for a provisional upward shift with evidence of one earlier reversed spike and it falls back to the incumbent when no match is available. No parameters were tuned on UCI data. The comparison uses the production selector from `a3b451c` and a last-closed-month baseline.
+
+Reproduce with `python real_forecast_benchmark.py PATH_TO_WORKBOOK_OR_ZIP --dataset online-retail-ii --experiment analog-followthrough` in a Python environment with the optional `openpyxl` workbook reader. The experiment is benchmark-only.
+
+### UCI result and coverage
+
+The workbook supplied 824,364 usable lines and 5,942 numeric customer histories, with 57 eligible customers and 325 overall test targets. No target met the definition of a sustained increase after one prior isolated spike. The analog selector made no changes on any eligible target.
+
+| UCI cohort | Targets | Incumbent MAE (GBP) | Analog MAE (GBP) | Baseline MAE (GBP) |
+| --- | ---: | ---: | ---: | ---: |
+| Sustained increase after one prior spike | 0 | — | — | — |
+| Other sustained increases | 2 | 4,135.90 | 4,135.90 | 1,409.40 |
+| Isolated spike with return to normal | 5 | 3,167.20 | 3,167.20 | 3,319.80 |
+| Overall | 325 | 1,759.91 | 1,759.91 | 1,850.25 |
+
+### Independent household panel (The Complete Journey)
+
+[dunnhumby’s Source Files](https://www.dunnhumby.com/source-files/) describe the two-year retail panel. This evaluation reads only `transaction_data.csv` from the [versioned ZIP mirror](https://github.com/bltap-plmarket/dunnhumby-complete-journey/releases/tag/v1.0-data). The archive SHA-256 is `324288a8811c4ed86e85415fdee36f3692582e2cc9dd87866c0e333df237f782`, matching the release digest. Neither raw files nor household identifiers are included here.
+
+The benchmark sums published `SALES_VALUE` by numeric household key into consecutive 30-day blocks because dates are ordinal. It drops each household's first observed block and the panel's incomplete last block. A block without recorded purchases breaks a series. These are sales at one retailer, measured in the source's sales units. They represent neither calendar months nor whole-household spending. The dataset supplies 2,595,732 purchase lines and 2,500 household histories.
+
+The experiment, incumbent and baseline use the same targets and the same cohort definitions as UCI. The rule and weights were frozen before either dataset's forecast errors were calculated. Reproduce with `python real_forecast_benchmark.py PATH_TO_RELEASE_ZIP --dataset complete-journey --experiment analog-followthrough`.
+
+### Household-panel results
+
+The frozen analog selector changed no estimates in the six target cases, so its target MAE matched the incumbent and baseline at 116.18. It changed one of 63 isolated-spike estimates (MAE 209.94 to 209.02) and ten of 5,629 overall estimates (103.64 to 103.59). Other sustained increases were unchanged. In a separate synthetic run (seeds 8100–8131), it worsened the target MAE from 125.56 to 135.72 and raised seasonal MAE from 56.09 to 56.11. The other six synthetic scenario scores were unchanged.
+
+After observing the frozen selector's lack of coverage, an exploratory variant used the one prior reversal directly from the known prefix under the shared cohort threshold, without requiring the incumbent's provisional shift signal. It applies the same one-third analog weight and uses the observed persistence two periods after the earlier reversal. It never uses the current spike's future outcomes to detect or estimate anything. Reproduce with `python real_forecast_benchmark.py PATH_TO_RELEASE_ZIP --dataset complete-journey --experiment reversal-followthrough`.
+
+| Household cohort | Targets | Changed estimates | Incumbent MAE | Exploratory MAE | Baseline MAE |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Sustained increase after one prior spike | 6 | 4 | 116.18 | 89.88 | 116.18 |
+| Other sustained increases | 25 | 0 | 93.38 | 93.38 | 69.07 |
+| Isolated spike with return to normal | 63 | 17 | 209.94 | 194.77 | 236.93 |
+| Overall | 5,629 | 59 | 103.64 | 103.16 | 107.36 |
+
+The target improvement is exploratory and based on six households. The broadened selector followed the coverage check on this same panel, so the table does not constitute independent confirmation of the variant. On a separate synthetic suite (seeds 8400–8431), the exploratory variant raised target MAE from 130.71 to 138.72 (baseline 139.58), one-off spike MAE from 155.26 to 155.70, and seasonal MAE from 56.93 to 57.27. The other five scenarios were unchanged. Neither selector was enabled in the application.
+
+### Sensitivity to period boundaries and small cohorts
+
+The exploratory selector and event criteria were held fixed. The same Complete Journey records were replayed with 28-, 30-, and 31-day blocks and with a 15-day shift of the 30-day boundary. The cohorts can overlap across runs, so this is a sensitivity check on one panel. Reproduce by adding `--block-days 28`, `--block-days 31`, or `--block-days 30 --day-offset 15` to the Complete Journey reversal-followthrough command.
+
+| Blocks | Main targets | Incumbent MAE | Exploratory MAE | Baseline MAE | Experiment minus incumbent, leave-one-household-out range |
+| --- | ---: | ---: | ---: | ---: | --- |
+| 30 days from day 1 | 6 | 116.18 | 89.88 | 116.18 | [−49.40, +14.51] |
+| 28 days from day 1 | 18 | 129.90 | 150.23 | 123.35 | [+15.71, +23.97] |
+| 31 days from day 1 | 10 | 100.58 | 122.15 | 90.58 | [+17.00, +26.02] |
+| 30 days from day 16 | 11 | 122.56 | 125.14 | 96.21 | [−1.73, +8.04] |
+
+The leave-one-household-out range recomputes the paired MAE difference after omitting one household at a time, keeping the remaining targets weighted equally. It is a sensitivity diagnostic and does not estimate a confidence interval. The original target improvement reverses after omitting one of the six households and does not reproduce under the three alternative boundaries.
+
+In contrast, the isolated-spike cohort improved against the incumbent in all four runs: 209.94 to 194.77, 187.66 to 181.02, 224.07 to 204.81, and 190.54 to 179.40, in the table order. Other sustained increases were unchanged in every run. Overall MAE improved slightly in each run, from 103.64 to 103.16, 99.09 to 98.80, 105.58 to 105.12, and 103.29 to 102.82. These aggregate results do not resolve the failure on the primary cohort. The application still uses the incumbent selector.

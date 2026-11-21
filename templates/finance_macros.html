@@ -1,0 +1,12 @@
+{% macro field(name, label, type='text', value='', required=true, min=none, maxlength=none, hint=none) %}
+<div class="account-field">
+    <label for="{{ name }}">{{ label }}</label>
+    <input name="{{ name }}" id="{{ name }}" type="{{ type }}" value="{{ request.form.get(name, value) }}"
+        {% if required %}required{% endif %}{% if type == 'number' %} step="0.01" inputmode="decimal"{% endif %}
+        {% if min is not none %}min="{{ min }}"{% endif %}{% if maxlength is not none %} maxlength="{{ maxlength }}"{% endif %}
+        {% if hint %}aria-describedby="{{ name }}-hint"{% endif %}>
+    {% if hint %}<small id="{{ name }}-hint">{{ hint }}</small>{% endif %}
+</div>
+{% endmacro %}
+{% macro money(value) %}{{ '-$' if value < 0 else '$' }}{{ '{:,.2f}'.format(value|abs) }}{% endmacro %}
+{% macro stored_amount(value) %}{% if value is number and value * 0 == 0 %}{{ money(value) }}{% else %}{{ value }}{% endif %}{% endmacro %}

@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.ruff_cache/
+.venv/
+.env
+.env.*
+instance/
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+static/profile_images/
+static/*.xlsx
+/static/ profile_images/

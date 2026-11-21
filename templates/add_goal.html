@@ -1,0 +1,11 @@
+{% extends "entry_form.html" %}
+{% from "finance_macros.html" import field with context %}
+{% set heading = "Edit goal" if editing else "Add goal" %}
+{% set description = "Set a target and track the amount you have saved." %}
+{% set submit_label = "Save goal" %}
+{% set cancel_endpoint = "view_goals" %}
+{% block fields %}
+    {{ field('goal', 'Goal name', value=record[0], maxlength=100) }}
+    {{ field('target_amount', 'Target amount', 'number', record[1], min=0.01) }}
+    {{ field('current_amount', 'Amount saved', 'number', record[2], min=0) }}
+{% endblock %}

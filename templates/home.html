@@ -1,131 +1,89 @@
 {% extends "base.html" %}
-
-{% block title %}Home{% endblock %}
-
+{% block title %}Overview{% endblock %}
 {% block content %}
-<style>
-    body {
-        font-family: 'Roboto', sans-serif;
-        background: url('{{ url_for('static', filename='icons/background2.jpg') }}') no-repeat center center;
-        background-size: cover;
-        color: white;
-        padding: 2rem .5rem;
-    }
-
-    .jumbotron .display-4 {
-        font-weight: bold;
-    }
-
-    .card-container {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        margin-top: 2rem;
-    }
-
-    .card {
-        width: 150px;
-        margin: 15px;
-        padding: 20px;
-        text-align: center;
-        background: white;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        border-radius: 10px;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-    }
-
-    .card img {
-        width: 50px;
-        height: 50px;
-        margin-bottom: 10px;
-    }
-
-    .card p {
-        margin: 0;
-        font-weight: bold;
-        color: #333;
-    }
-
-    .card a {
-        text-decoration: none;
-        color: #333;
-    }
-
-    .card a:hover {
-        color: #007bff;
-    }
-</style>
-
-<div class="container">
-    <h1 class="display-4">Welcome to the Personal Finance App</h1>
-    <p class="lead">Manage your finances effortlessly and effectively.</p>
-    <hr class="my-4" style="border-color: white;">
-    <div class="card-container">
-        <div class="card">
-            <a href="{{ url_for('add_expense') }}">
-               <img src="{{ url_for('static', filename='icons/icons8-dollar-banknote-48.png') }}" alt="Add Expense">
-               <p>Add Expense</p>
-            </a>
-        </div>
-        <div class="card">
-            <a href="{{ url_for('view_expenses') }}">
-                <img src="{{ url_for('static', filename='icons/icons8-receipt-64.png') }}" alt="View Expenses">
-                <p>View Expenses</p>
-            </a>
-        </div>
-        <div class="card">
-            <a href="{{ url_for('predict_expenses') }}">
-                <img src="{{ url_for('static', filename='icons/icons8-graph-64.png') }}" alt="Predict Expenses">
-                <p>Predict Expenses</p>
-            </a>
-        </div>
-        <div class="card">
-            <a href="{{ url_for('add_goal') }}">
-                <img src="{{ url_for('static', filename='icons/isometric-target-1.png') }}" alt="Add Goal">
-                <p>Add Goal</p>
-            </a>
-        </div>
-        <div class="card">
-            <a href="{{ url_for('view_goals') }}">
-                <img src="{{ url_for('static', filename='icons/success.png') }}" alt="View Goals">
-                <p>View Goals</p>
-            </a>
-        </div>
-        <div class="card">
-            <a href="{{ url_for('add_income') }}">
-                <img src="{{ url_for('static', filename='icons/hand-with-dollar.png') }}" alt="Add Income">
-                <p>Add Income</p>
-            </a>
-        </div>
-        <div class="card">
-            <a href="{{ url_for('view_income') }}">
-                <img src="{{ url_for('static', filename='icons/growth.png') }}" alt="View Income">
-                <p>View Income</p>
-            </a>
-        </div>
-        <div class="card">
-            <a href="{{ url_for('view_anomalies') }}">
-                <img src="{{ url_for('static', filename='icons/statistics.png') }}" alt="View Anomalies">
-                <p>View Anomalies</p>
-            </a>
-        </div>
-        <div class="card">
-            <a href="{{ url_for('view_expense_clusters') }}">
-                <img src="{{ url_for('static', filename='icons/cluster.png') }}" alt="View Clusters">
-                <p>View Clusters</p>
-            </a>
-        </div>
-        <div class="card">
-            <a href="{{ url_for('recommend_savings') }}">
-                <img src="{{ url_for('static', filename='icons/piggy-bank.png') }}" alt="Recommend Savings">
-                <p>Recommend Savings</p>
-            </a>
-        </div>
-    </div>
+{% if not g.user %}
+<section class="surface welcome">
+    <h1>Make sense of your money.</h1>
+    <p>Record income and expenses, follow your goals, and see how your cash flow changes over time.</p>
+    <div class="actions"><a class="ds-button primary" href="{{ url_for('register') }}">Create an account</a><a class="ds-button" href="{{ url_for('login') }}">Sign in</a></div>
+</section>
+{% else %}
+<header class="overview-header">
+    <div><h1>Financial overview</h1><p>{{ start.strftime('%b %d, %Y') }} – {{ end.strftime('%b %d, %Y') }}</p></div>
+    <div class="actions"><a class="ds-button" href="{{ url_for('add_income') }}">Add income</a><a class="ds-button primary" href="{{ url_for('add_expense') }}">Add expense</a></div>
+</header>
+<div class="period-controls">
+    <nav class="period-nav" aria-label="Reporting period">
+        {% for key, label in [('month', 'This month'), ('quarter', 'Last 3 months'), ('year', 'This year')] %}
+        <a href="{{ url_for('home', period=key) }}"{% if period == key %} aria-current="page"{% endif %}>{{ label }}</a>
+        {% endfor %}
+    </nav>
+    <details class="date-controls" {% if period == 'custom' %}open{% endif %}>
+        <summary>Custom range</summary>
+        <form method="get" class="date-fields">
+            <input type="hidden" name="period" value="custom">
+            <label>From <input type="date" name="start" value="{{ start }}" required></label>
+            <label>To <input type="date" name="end" value="{{ end }}" required></label>
+            <button class="ds-button" type="submit">Apply</button>
+        </form>
+    </details>
 </div>
+{% if report_error %}
+    <p class="surface notice" role="alert">This period contains a record with an invalid date or amount. Review the income and expense lists.</p>
+{% else %}
+{% macro money(value) %}{{ '-$' if value < 0 else '$' }}{{ '{:,.2f}'.format(value|abs) }}{% endmacro %}
+<section class="metric-grid" aria-label="Cash flow summary">
+    <article class="surface metric"><h2>Income</h2><p>{{ money(report.income) }}</p><a href="{{ url_for('view_income') }}">View income</a></article>
+    <article class="surface metric"><h2>Expenses</h2><p>{{ money(report.expenses) }}</p><a href="{{ url_for('view_expenses') }}">View expenses</a></article>
+    <article class="surface metric cash-flow"><h2>Net cash flow</h2><p>{{ money(report.cash_flow) }}</p><small>Income minus expenses</small></article>
+</section>
+<div class="overview-grid">
+<section class="surface overview-panel">
+    <h2>Monthly cash flow</h2>
+    {% if report.trend %}
+    <div class="legend"><span>Income</span><span>Expenses</span></div>
+    <ul class="trend-list">
+        {% for month, amounts in report.trend %}
+        <li class="trend-row">
+            <time datetime="{{ month }}">{{ month }}</time>
+            <div class="trend-values">
+                {% for amount, width in amounts %}
+                <div class="trend-line {{ 'outflow' if loop.index0 else 'inflow' }}">
+                    <div class="track" aria-hidden="true"><span style="width:{{ width }}%"></span></div>
+                    <span><span class="sr-only">{{ 'Expenses' if loop.index0 else 'Income' }} </span>{{ money(amount) }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    <small>Bar length shows the size of each amount. A negative amount keeps its sign in the label.</small>
+    {% else %}
+    <p class="muted">No income or expenses in this period.</p>
+    {% endif %}
+</section>
+<section class="surface overview-panel">
+    <h2>Recent activity</h2>
+    {% if report.recent %}
+    <ul class="activity-list">
+        {% for day, label, kind, value in report.recent %}
+        <li><div><strong>{{ label }}</strong><small><time datetime="{{ day }}">{{ day }}</time> · {{ 'Expense' if kind else 'Income' }}</small></div><strong>{{ money(value) }}</strong></li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">New transactions in this period will appear here.</p>
+    {% endif %}
+</section>
+</div>
+{% endif %}
+<nav class="surface overview-panel secondary-links" aria-label="Planning and analytics">
+    <h2>Planning and analytics</h2>
+    <div class="actions">
+        <a class="ds-button" href="{{ url_for('view_goals') }}">View goals</a><a class="ds-button" href="{{ url_for('add_goal') }}">Add goal</a>
+        <a class="ds-button" href="{{ url_for('recurring_expenses') }}">Recurring expenses</a>
+        <a class="ds-button" href="{{ url_for('predict_expenses') }}">Predict expenses</a><a class="ds-button" href="{{ url_for('view_anomalies') }}">View anomalies</a>
+        <a class="ds-button" href="{{ url_for('view_expense_clusters') }}">View clusters</a><a class="ds-button" href="{{ url_for('recommend_savings') }}">Spending reference</a>
+    </div>
+</nav>
+{% endif %}
 {% endblock %}
