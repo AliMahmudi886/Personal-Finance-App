@@ -169,3 +169,47 @@ Development compared several responses for upward shifts with evidence of exactl
 | Overall, latest 12 eligible targets per account | 1,533 | 16,234 | 9,602.90 | 9,588.93 | 11,128.21 |
 
 For the target cohort, experiment minus previous had a paired 95% bootstrap interval of [−544.65, 568.01] CZK. Experiment minus baseline was [−1,253.84, 625.40] CZK. The experiment did not improve on the previous model in the target cohort. On a separate synthetic suite with seeds 7100–7131 it also worsened the target scenario (123.79 to 189.34) and seasonal scenario (56.72 to 58.82), improving isolated spikes (142.97 to 142.05) and leaving the other five scenarios unchanged. The experiment remains opt-in in the benchmark. The application retains the previous engine.
+
+## Independent retail benchmark (UCI Online Retail II)
+
+This follow-up uses Daqing Chen's [Online Retail II](https://doi.org/10.24432/C5CG6D), a public CC BY 4.0 dataset of real purchases from a UK online retailer. The source provides numeric customer keys, and many buyers are wholesalers. The benchmark treats transaction quantities times sterling unit prices as signed net purchases at this one retailer. Rows without customer ID or valid numeric purchase fields are excluded. The first observed month per buyer and the dataset's partial final month are excluded. Gaps in recorded activity split the series. All three methods use identical eligible targets and the same two-month horizon.
+
+The workbook was obtained from a [pinned mirror of the official UCI workbook](https://github.com/DiogoRibeiro7/data/tree/8023c7f3b3ef5ebc1c4d46983fc407a944a231b3/datasets/online-retail-ii). Its SHA-256 matched the mirror's recorded UCI snapshot: `bcbe73b35f5b7babf197fb0cb983a11f5d9ff929078d4aa53d171b1f2df2e980`. The direct UCI ZIP transfer timed out. The workbook and customer records are excluded from this repository.
+
+The frozen experimental selector uses up to three similar historical upward changes from the same buyer's known history. It estimates how much of each increase persisted two periods later, limits historical persistence to the range from 0% to 100%, and blends that estimate with the incumbent forecast at a weight of one third. It is evaluated only for a provisional upward shift with evidence of one earlier reversed spike and it falls back to the incumbent when no match is available. No parameters were tuned on UCI data. The comparison uses the production selector from `a3b451c` and a last-closed-month baseline.
+
+Reproduce with `python real_forecast_benchmark.py PATH_TO_WORKBOOK_OR_ZIP --dataset online-retail-ii --experiment analog-followthrough` in a Python environment with the optional `openpyxl` workbook reader. The experiment is benchmark-only.
+
+### UCI result and coverage
+
+The workbook supplied 824,364 usable lines and 5,942 numeric customer histories, with 57 eligible customers and 325 overall test targets. No target met the definition of a sustained increase after one prior isolated spike. The analog selector made no changes on any eligible target.
+
+| UCI cohort | Targets | Incumbent MAE (GBP) | Analog MAE (GBP) | Baseline MAE (GBP) |
+| --- | ---: | ---: | ---: | ---: |
+| Sustained increase after one prior spike | 0 | — | — | — |
+| Other sustained increases | 2 | 4,135.90 | 4,135.90 | 1,409.40 |
+| Isolated spike with return to normal | 5 | 3,167.20 | 3,167.20 | 3,319.80 |
+| Overall | 325 | 1,759.91 | 1,759.91 | 1,850.25 |
+
+### Independent household panel (The Complete Journey)
+
+[dunnhumby’s Source Files](https://www.dunnhumby.com/source-files/) describe the two-year retail panel. This evaluation reads only `transaction_data.csv` from the [versioned ZIP mirror](https://github.com/bltap-plmarket/dunnhumby-complete-journey/releases/tag/v1.0-data). The archive SHA-256 is `324288a8811c4ed86e85415fdee36f3692582e2cc9dd87866c0e333df237f782`, matching the release digest. Neither raw files nor household identifiers are included here.
+
+The benchmark sums published `SALES_VALUE` by numeric household key into consecutive 30-day blocks because dates are ordinal. It drops each household's first observed block and the panel's incomplete last block. A block without recorded purchases breaks a series. These are sales at one retailer, measured in the source's sales units. They represent neither calendar months nor whole-household spending. The dataset supplies 2,595,732 purchase lines and 2,500 household histories.
+
+The experiment, incumbent and baseline use the same targets and the same cohort definitions as UCI. The rule and weights were frozen before either dataset's forecast errors were calculated. Reproduce with `python real_forecast_benchmark.py PATH_TO_RELEASE_ZIP --dataset complete-journey --experiment analog-followthrough`.
+
+### Household-panel results
+
+The frozen analog selector changed no estimates in the six target cases, so its target MAE matched the incumbent and baseline at 116.18. It changed one of 63 isolated-spike estimates (MAE 209.94 to 209.02) and ten of 5,629 overall estimates (103.64 to 103.59). Other sustained increases were unchanged. In a separate synthetic run (seeds 8100–8131), it worsened the target MAE from 125.56 to 135.72 and raised seasonal MAE from 56.09 to 56.11. The other six synthetic scenario scores were unchanged.
+
+After observing the frozen selector's lack of coverage, an exploratory variant used the one prior reversal directly from the known prefix under the shared cohort threshold, without requiring the incumbent's provisional shift signal. It applies the same one-third analog weight and uses the observed persistence two periods after the earlier reversal. It never uses the current spike's future outcomes to detect or estimate anything. Reproduce with `python real_forecast_benchmark.py PATH_TO_RELEASE_ZIP --dataset complete-journey --experiment reversal-followthrough`.
+
+| Household cohort | Targets | Changed estimates | Incumbent MAE | Exploratory MAE | Baseline MAE |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Sustained increase after one prior spike | 6 | 4 | 116.18 | 89.88 | 116.18 |
+| Other sustained increases | 25 | 0 | 93.38 | 93.38 | 69.07 |
+| Isolated spike with return to normal | 63 | 17 | 209.94 | 194.77 | 236.93 |
+| Overall | 5,629 | 59 | 103.64 | 103.16 | 107.36 |
+
+The target improvement is exploratory and based on six households. The broadened selector followed the coverage check on this same panel, so the table does not constitute independent confirmation of the variant. On a separate synthetic suite (seeds 8400–8431), the exploratory variant raised target MAE from 130.71 to 138.72 (baseline 139.58), one-off spike MAE from 155.26 to 155.70, and seasonal MAE from 56.93 to 57.27. The other five scenarios were unchanged. Neither selector was enabled in the application.

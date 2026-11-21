@@ -1,11 +1,17 @@
 import unittest
 from decimal import Decimal
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from zipfile import ZipFile
 
 from real_forecast_benchmark import (
     account_partition,
+    analog_followthrough,
     contiguous_runs,
     evaluate,
     event_at,
+    read_complete_journey,
+    reversal_followthrough,
     tempered_increase,
 )
 
@@ -24,6 +30,39 @@ class RealForecastBenchmarkTest(unittest.TestCase):
         method, estimate = tempered_increase(values)
         self.assertEqual(method, "Tempered increase after an earlier spike")
         self.assertEqual(estimate, Decimal("1409.80"))
+
+    def test_analog_experiment_uses_completed_similar_spike(self):
+        values = [Decimal(value) for value in [100] * 10 + [150] + [100] * 10 + [150]]
+        method, estimate = analog_followthrough(values)
+        self.assertEqual(method, "Matched historical follow-through")
+        self.assertEqual(estimate.quantize(Decimal("0.01")), Decimal("133.33"))
+
+    def test_analog_experiment_falls_back_with_no_earlier_reversal(self):
+        values = [Decimal(100)] * 20 + [Decimal(150)]
+        self.assertEqual(
+            analog_followthrough(values), ("Possible level shift", Decimal(150))
+        )
+
+    def test_reversal_experiment_works_on_cutoff_prefix(self):
+        known = [Decimal(100)] * 14
+        known[3] = Decimal(160)
+        known.append(Decimal(160))
+        method, estimate = reversal_followthrough(known)
+        self.assertEqual(method, "Earlier spike follow-through")
+        self.assertLess(estimate, Decimal(160))
+
+    def test_household_day_buckets_exclude_first_and_partial_final_periods(self):
+        with TemporaryDirectory() as folder:
+            path = Path(folder) / "transactions.zip"
+            with ZipFile(path, "w") as archive:
+                archive.writestr(
+                    "transaction_data.csv",
+                    "household_key,DAY,SALES_VALUE\nfixture,1,5\nfixture,31,10.20\n"
+                    "fixture,60,1.25\nfixture,90,3.00\nfixture,91,100\n",
+                )
+            monthly, rows = read_complete_journey(path)
+        self.assertEqual(rows, 5)
+        self.assertEqual(monthly["fixture"], {1: Decimal("11.45"), 2: Decimal(3)})
 
     def test_event_labels_use_one_completed_earlier_spike_and_future_outcomes(self):
         known = [Decimal(100)] * 14
